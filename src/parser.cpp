@@ -36,7 +36,7 @@ std::unique_ptr<ExprAST> Parser::parseIdentifierExpr() noexcept {
         break;
 
       if (curToken != ',')
-        return nullptr; // TODO log error
+        return logError("Expected ')' or ',' in argument list");
 
       getNextToken();
     }
@@ -55,7 +55,69 @@ std::unique_ptr<ExprAST> Parser::parsePrimery() noexcept {
   case '(':
     return parseNumberExpr();
   default:
-    return nullptr;
+    return logError("unknown token when expecting an expression");
   }
+}
+
+std::unique_ptr<ExprAST> Parser::logError(const char *Str) const noexcept {
+  fprintf(stderr, "Error: %s\n", Str);
+  return nullptr;
+}
+std::unique_ptr<FunctionPrototypeAST>
+Parser::logErrorP(const char *Str) const noexcept {
+  logError(Str);
+  return nullptr;
+}
+
+int Parser::getNextToken() noexcept { return curToken = getToken(); }
+
+int Parser::getToken() noexcept {
+  static int lastChar = ' ';
+
+  // Skip any whitespace.
+  while (isspace(lastChar))
+    lastChar = getchar();
+
+  if (isalpha(lastChar)) { // identifier: [a-zA-Z][a-zA-Z0-9]*
+    identifierStr = lastChar;
+    while (isalnum((lastChar = getchar())))
+      identifierStr += lastChar;
+
+    if (identifierStr == "def")
+      return token_def;
+    if (identifierStr == "extern")
+      return token_extern;
+    return token_identifier;
+  }
+
+  if (isdigit(lastChar) || lastChar == '.') { // Number: [0-9.]+
+    std::string numStr;
+    do {
+      numStr += lastChar;
+      lastChar = getchar();
+    } while (isdigit(lastChar) || lastChar == '.');
+
+    numVal = strtod(numStr.c_str(), nullptr);
+    return token_number;
+  }
+
+  if (lastChar == '#') {
+    // Comment until end of line.
+    do
+      lastChar = getchar();
+    while (lastChar != EOF && lastChar != '\n' && lastChar != '\r');
+
+    if (lastChar != EOF)
+      return getToken();
+  }
+
+  // Check for end of file.  Don't eat the EOF.
+  if (lastChar == EOF)
+    return token_eof;
+
+  // Otherwise, just return the character as its ascii value.
+  int ThisChar = lastChar;
+  lastChar = getchar();
+  return ThisChar;
 }
 } // namespace ggc

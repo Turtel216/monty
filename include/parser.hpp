@@ -14,8 +14,15 @@ private:
   bool panicing;
   char curToken;
   std::string identifierStr;
+  double numVal;
 
-  void getNextToken() noexcept;
+  int getNextToken() noexcept;
+  int getToken() noexcept;
+
+  // TODO add better compiler error handling
+  std::unique_ptr<ExprAST> logError(const char *Str) const noexcept;
+  std::unique_ptr<FunctionPrototypeAST>
+  logErrorP(const char *Str) const noexcept;
 
   std::unique_ptr<ExprAST> parseExpresion() noexcept;
   std::unique_ptr<ExprAST> parseIdentifierExpr() noexcept;
