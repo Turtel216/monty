@@ -7,7 +7,6 @@ include(CTest)
 # Source files
 set(SRC_FILES
     src/main.cpp
-    src/lexer.cpp
     src/parser.cpp
     src/diagnostics.cpp
 )
