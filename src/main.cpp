@@ -1,4 +1,5 @@
 #include "../include/ast.hpp"
+#include "../include/diagnostics.hpp"
 #include <iostream>
 
 int main(int argc, char *argv[]) {

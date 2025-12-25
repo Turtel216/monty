@@ -8,6 +8,7 @@ include(CTest)
 set(SRC_FILES
     src/main.cpp
     src/lexer.cpp
+    src/diagnostics.cpp
 )
 
 # Main executable
