@@ -10,21 +10,21 @@ public:
   virtual ~ExprAST() = default;
 };
 
-class NumberExprAST : ExprAST {
+class NumberExprAST : public ExprAST {
   double val;
 
 public:
   NumberExprAST(double _val) noexcept : val(_val) {}
 };
 
-class VariableExprAST : ExprAST {
+class VariableExprAST : public ExprAST {
   std::string name;
 
 public:
   VariableExprAST(const std::string &_name) noexcept : name(_name) {}
 };
 
-class BinaryExprAST : ExprAST {
+class BinaryExprAST : public ExprAST {
   char op;
   std::unique_ptr<ExprAST> Lhs, Rhs;
 
@@ -34,7 +34,7 @@ public:
       : op(_op), Lhs(std::move(_Lhs)), Rhs(std::move(_Rhs)) {}
 };
 
-class FunctionCallExprAST : ExprAST {
+class FunctionCallExprAST : public ExprAST {
   std::string caller;
   std::vector<std::unique_ptr<ExprAST>> args;
 
