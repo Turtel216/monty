@@ -43,7 +43,7 @@ private:
   std::unique_ptr<FunctionPrototypeAST>
   logErrorP(const char *Str) const noexcept;
 
-  std::unique_ptr<ExprAST> parseExpresion() noexcept;
+  std::unique_ptr<ExprAST> parseExpression() noexcept;
   std::unique_ptr<ExprAST> parseIdentifierExpr() noexcept;
   std::unique_ptr<ExprAST> parsePrimery() noexcept;
   std::unique_ptr<ExprAST> parseBinOpRhs(int exprPrec,

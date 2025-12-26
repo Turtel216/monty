@@ -47,11 +47,11 @@ public:
 // Represents a functions declaration
 class FunctionPrototypeAST {
   std::string name;
-  std::vector<std::unique_ptr<ExprAST>> args;
+  std::vector<std::string> args;
 
 public:
   FunctionPrototypeAST(const std::string &_name,
-                       std::vector<std::unique_ptr<ExprAST>> _args) noexcept
+                       std::vector<std::string> _args) noexcept
       : name(_name), args(std::move(_args)) {};
 
   std::string getName() const noexcept { return name; }

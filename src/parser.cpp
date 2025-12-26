@@ -4,7 +4,7 @@
 #include <vector>
 
 namespace ggc {
-std::unique_ptr<ExprAST> Parser::parseExpresion() noexcept {
+std::unique_ptr<ExprAST> Parser::parseExpression() noexcept {
   auto Lhs = parsePrimery();
   if (!Lhs)
     return nullptr;
@@ -27,7 +27,7 @@ std::unique_ptr<ExprAST> Parser::parseIdentifierExpr() noexcept {
 
   if (curToken != ')') {
     while (true) {
-      if (auto arg = parseExpresion())
+      if (auto arg = parseExpression())
         args.push_back(std::move(arg));
       else
         return nullptr;
@@ -89,6 +89,41 @@ std::unique_ptr<ExprAST> Parser::parsePrimery() noexcept {
   }
 }
 
+std::unique_ptr<FunctionPrototypeAST> Parser::parsePrototype() noexcept {
+  if (curToken != token_identifier)
+    return logErrorP("Expected function name prototype");
+
+  std::string fnName = identifierStr;
+  getNextToken();
+
+  if (curToken != '(')
+    return logErrorP("Expected ')' in protortpe");
+
+  // parse arguments
+  std::vector<std::string> argNames;
+  while (getNextToken() == token_identifier)
+    argNames.push_back(identifierStr);
+
+  if (curToken != ')')
+    return logErrorP("Expected ')' in protortpe");
+
+  // eat ')'
+  getNextToken();
+
+  return std::make_unique<FunctionPrototypeAST>(fnName, std::move(argNames));
+}
+
+std::unique_ptr<FunctionAST> Parser::parseDefinition() noexcept {
+  getNextToken(); // eat def.
+  auto Proto = parsePrototype();
+  if (!Proto)
+    return nullptr;
+
+  if (auto E = parseExpression())
+    return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
+  return nullptr;
+}
+
 std::unique_ptr<ExprAST> Parser::logError(const char *Str) const noexcept {
   fprintf(stderr, "Error: %s\n", Str);
   return nullptr;
@@ -96,6 +131,21 @@ std::unique_ptr<ExprAST> Parser::logError(const char *Str) const noexcept {
 std::unique_ptr<FunctionPrototypeAST>
 Parser::logErrorP(const char *Str) const noexcept {
   logError(Str);
+  return nullptr;
+}
+
+std::unique_ptr<FunctionPrototypeAST> Parser::parseExtern() noexcept {
+  getNextToken(); // eat extern.
+  return parsePrototype();
+}
+
+std::unique_ptr<FunctionAST> Parser::parseTopLevelExpr() noexcept {
+  if (auto E = parseExpression()) {
+    // Make an anonymous proto.
+    auto Proto =
+        std::make_unique<FunctionPrototypeAST>("", std::vector<std::string>());
+    return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
+  }
   return nullptr;
 }
 
