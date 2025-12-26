@@ -1,8 +1,26 @@
 cmake_minimum_required(VERSION 3.30)
-project(lang LANGUAGES CXX)
+project(lang LANGUAGES C CXX)
 
 # Enable testing
 include(CTest)
+
+find_package(LLVM REQUIRED CONFIG)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "LLVM include dir: ${LLVM_INCLUDE_DIRS}")
+
+# Add LLVM directories to the search paths
+list(APPEND CMAKE_MODULE_PATH ${LLVM_CMAKE_DIR})
+include_directories(${LLVM_INCLUDE_DIRS})
+
+# Apply LLVM preprocessor definitions (important for ABI compatibility)
+add_definitions(${LLVM_DEFINITIONS})
+
+# C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Source files
 set(SRC_FILES
@@ -14,16 +32,11 @@ set(SRC_FILES
 # Main executable
 add_executable(ggc ${SRC_FILES})
 
+target_link_libraries(ggc LLVM)
+
 # Tests
 #if (BUILD_TESTING)
 #    add_executable(lexer_test_success tests/lexer/test_success.cpp)
 #    target_link_libraries(lexer_test_success lexer_lib)
 #endif()
-
-# C++ standard
-set_target_properties(ggc PROPERTIES
-    CXX_STANDARD 23
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-)
 
