@@ -18,7 +18,7 @@ std::unique_ptr<ExprAST> Parser::parseIdentifierExpr() noexcept {
   // eat identifier
   getNextToken();
 
-  if (curToken == '(')
+  if (curToken != '(')
     return std::make_unique<VariableExprAST>(idName);
 
   // Function call
@@ -83,7 +83,7 @@ std::unique_ptr<ExprAST> Parser::parsePrimery() noexcept {
   case token_number:
     return parseNumberExpr();
   case '(':
-    return parseNumberExpr();
+    return parseParenExpr();
   default:
     return logError("unknown token when expecting an expression");
   }
@@ -146,13 +146,26 @@ std::unique_ptr<FunctionPrototypeAST> Parser::parseExtern() noexcept {
 }
 
 std::unique_ptr<FunctionAST> Parser::parseTopLevelExpr() noexcept {
-  if (auto E = parseExpression()) {
+  if (auto expr = parseExpression()) {
     // Make an anonymous proto.
-    auto Proto =
-        std::make_unique<FunctionPrototypeAST>("", std::vector<std::string>());
-    return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
+    auto proto = std::make_unique<FunctionPrototypeAST>(
+        "__annon_expr", std::vector<std::string>());
+    return std::make_unique<FunctionAST>(std::move(proto), std::move(expr));
   }
   return nullptr;
+}
+
+std::unique_ptr<ExprAST> Parser::parseParenExpr() noexcept {
+  getNextToken(); // eat (.
+  auto V = parseExpression();
+  if (!V)
+    return nullptr;
+
+  if (curToken != ')')
+    return logError("expected ')'");
+
+  getNextToken(); // eat ).
+  return V;
 }
 
 int Parser::getNextToken() noexcept { return curToken = getToken(); }
