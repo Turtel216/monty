@@ -89,6 +89,12 @@ std::unique_ptr<ExprAST> Parser::parsePrimery() noexcept {
   }
 }
 
+std::unique_ptr<ExprAST> Parser::parseNumberExpr() noexcept {
+  auto result = std::make_unique<NumberExprAST>(numVal);
+  getNextToken(); // consume the number
+  return result;
+}
+
 std::unique_ptr<FunctionPrototypeAST> Parser::parsePrototype() noexcept {
   if (curToken != token_identifier)
     return logErrorP("Expected function name prototype");
@@ -211,4 +217,55 @@ int Parser::getTokenPrecedence() const noexcept {
 
   return tokenPrec;
 }
+
+void Parser::handleDefinition() noexcept {
+  if (parseDefinition()) {
+    fprintf(stderr, "Parsed a function definition.\n");
+  } else {
+    // Skip token for error recovery.
+    getNextToken();
+  }
+}
+
+void Parser::handleExtern() noexcept {
+  if (parseExtern()) {
+    fprintf(stderr, "Parsed an extern\n");
+  } else {
+    // Skip token for error recovery.
+    getNextToken();
+  }
+}
+
+void Parser::handleTopLevelExpression() noexcept {
+  // Evaluate a top-level expression into an anonymous function.
+  if (parseTopLevelExpr()) {
+    fprintf(stderr, "Parsed a top-level expr\n");
+  } else {
+    // Skip token for error recovery.
+    getNextToken();
+  }
+}
+
+void Parser::replLoop() noexcept {
+  while (true) {
+    fprintf(stderr, "ready> ");
+    switch (curToken) {
+    case token_eof:
+      return;
+    case ';': // ignore top-level semicolons.
+      getNextToken();
+      break;
+    case token_def:
+      handleDefinition();
+      break;
+    case token_extern:
+      handleExtern();
+      break;
+    default:
+      handleTopLevelExpression();
+      break;
+    }
+  }
+}
+
 } // namespace ggc

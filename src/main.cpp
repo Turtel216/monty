@@ -1,8 +1,12 @@
-#include "../include/ast.hpp"
-#include "../include/diagnostics.hpp"
-#include <iostream>
+#include "../include/parser.hpp"
 
 int main(int argc, char *argv[]) {
-  std::cout << "Hello World!\n";
+
+  ggc::Parser parser;
+  fprintf(stderr, "ready> ");
+  parser.getNextToken();
+
+  parser.replLoop();
+
   return 0;
 }

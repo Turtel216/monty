@@ -26,22 +26,26 @@ public:
     binopPrecedence['*'] = 40;
   }
 
-  void handleTopLevelExpression() noexcept;
+  void replLoop() noexcept; // TODO move logic to compiler driver
+  int getNextToken() noexcept;
 
 private:
   bool panicing;
   char curToken;
   std::string identifierStr;
   double numVal;
-  static std::map<char, int> binopPrecedence;
+  static inline std::map<char, int> binopPrecedence;
 
-  int getNextToken() noexcept;
   int getToken() noexcept;
+  void handleTopLevelExpression() noexcept;
 
   // TODO add better compiler error handling
   std::unique_ptr<ExprAST> logError(const char *Str) const noexcept;
   std::unique_ptr<FunctionPrototypeAST>
   logErrorP(const char *Str) const noexcept;
+
+  void handleExtern() noexcept;
+  void handleDefinition() noexcept;
 
   std::unique_ptr<ExprAST> parseExpression() noexcept;
   std::unique_ptr<ExprAST> parseIdentifierExpr() noexcept;
