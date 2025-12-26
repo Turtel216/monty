@@ -1,4 +1,5 @@
 #include "../include/parser.hpp"
+#include <cctype>
 #include <memory>
 #include <vector>
 
@@ -8,7 +9,7 @@ std::unique_ptr<ExprAST> Parser::parseExpresion() noexcept {
   if (!Lhs)
     return nullptr;
 
-  return parseBinOpRhs();
+  return parseBinOpRhs(0, std::move(Lhs));
 }
 
 std::unique_ptr<ExprAST> Parser::parseIdentifierExpr() noexcept {
@@ -43,6 +44,36 @@ std::unique_ptr<ExprAST> Parser::parseIdentifierExpr() noexcept {
 
   // eat the ')'
   return std::make_unique<FunctionCallExprAST>(idName, std::move(args));
+}
+
+std::unique_ptr<ExprAST>
+Parser::parseBinOpRhs(int exprPrec, std::unique_ptr<ExprAST> Lhs) noexcept {
+  // find precedence of bin op
+  while (true) {
+    int tokenPrec = getTokenPrecedence();
+
+    if (tokenPrec < exprPrec)
+      return Lhs;
+
+    // is a binary operation
+    int binOp = curToken;
+    getNextToken(); // eat bin op
+
+    auto Rhs = parsePrimery();
+    if (!Rhs)
+      return nullptr;
+
+    int nextPrec = getTokenPrecedence();
+    if (tokenPrec < nextPrec) {
+      Rhs = parseBinOpRhs(tokenPrec + 1, std::move(Rhs));
+      if (!Rhs)
+        return nullptr;
+    }
+
+    // Combine Lhs and Rhs.
+    Lhs =
+        std::make_unique<BinaryExprAST>(binOp, std::move(Lhs), std::move(Rhs));
+  }
 }
 
 std::unique_ptr<ExprAST> Parser::parsePrimery() noexcept {
@@ -118,5 +149,16 @@ int Parser::getToken() noexcept {
   int ThisChar = lastChar;
   lastChar = getchar();
   return ThisChar;
+}
+
+int Parser::getTokenPrecedence() const noexcept {
+  if (!isascii(curToken))
+    return -1; // return invalid token code
+
+  int tokenPrec = binopPrecedence[curToken];
+  if (tokenPrec <= 0) // Invalid token
+    return -1;
+
+  return tokenPrec;
 }
 } // namespace ggc
