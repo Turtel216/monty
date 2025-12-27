@@ -1,16 +1,36 @@
 #pragma once
 
-#include "generator.hpp"
 #include <llvm/IR/Value.h>
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace monty {
+
+// Forward declartion
+class NumberExprAST;
+class VariableExprAST;
+class BinaryExprAST;
+class FunctionCallExprAST;
+class FunctionPrototypeAST;
+class FunctionAST;
+
+class ASTVisitor {
+public:
+  virtual ~ASTVisitor() = default;
+
+  virtual void visit(const NumberExprAST &node) = 0;
+  virtual void visit(const VariableExprAST &node) = 0;
+  virtual void visit(const BinaryExprAST &node) = 0;
+  virtual void visit(const FunctionCallExprAST &node) = 0;
+  virtual void visit(const FunctionPrototypeAST &node) = 0;
+  virtual void visit(const FunctionAST &node) = 0;
+};
+
 class ExprAST {
 public:
   virtual ~ExprAST() = default;
-  virtual llvm::Value *codegen(GeneratorContext &context) const noexcept = 0;
+  virtual void accept(ASTVisitor &visitor) const noexcept;
 };
 
 class NumberExprAST : public ExprAST {
@@ -18,8 +38,7 @@ class NumberExprAST : public ExprAST {
 
 public:
   NumberExprAST(double _val) noexcept : val(_val) {}
-  virtual llvm::Value *
-  codegen(GeneratorContext &context) const noexcept override;
+  void accept(ASTVisitor &visitor) const noexcept override;
 };
 
 class VariableExprAST : public ExprAST {
@@ -28,8 +47,7 @@ class VariableExprAST : public ExprAST {
 public:
   VariableExprAST(const std::string &_name) noexcept : name(_name) {}
 
-  virtual llvm::Value *
-  codegen(GeneratorContext &context) const noexcept override;
+  void accept(ASTVisitor &visitor) const noexcept override;
 };
 
 class BinaryExprAST : public ExprAST {
@@ -41,8 +59,7 @@ public:
                 std::unique_ptr<ExprAST> _Rhs) noexcept
       : op(_op), Lhs(std::move(_Lhs)), Rhs(std::move(_Rhs)) {}
 
-  virtual llvm::Value *
-  codegen(GeneratorContext &context) const noexcept override;
+  void accept(ASTVisitor &visitor) const noexcept override;
 };
 
 class FunctionCallExprAST : public ExprAST {
@@ -54,8 +71,7 @@ public:
                       std::vector<std::unique_ptr<ExprAST>> _args) noexcept
       : caller(_caller), args(std::move(_args)) {};
 
-  virtual llvm::Value *
-  codegen(GeneratorContext &context) const noexcept override;
+  void accept(ASTVisitor &visitor) const noexcept override;
 };
 
 // Represents a functions declaration
@@ -70,7 +86,7 @@ public:
 
   std::string getName() const noexcept { return name; }
 
-  llvm::Function *codegen(GeneratorContext &context) const noexcept;
+  void accept(ASTVisitor &visitor) const noexcept;
 };
 
 class FunctionAST {
@@ -82,6 +98,7 @@ public:
               std::unique_ptr<ExprAST> _body) noexcept
       : prototype(std::move(_prototype)), body(std::move(_body)) {}
 
-  llvm::Function *codegen(GeneratorContext &context) const noexcept;
+  void accept(ASTVisitor &visitor) const noexcept;
 };
+
 } // namespace monty
