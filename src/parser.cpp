@@ -3,7 +3,7 @@
 #include <memory>
 #include <vector>
 
-namespace ggc {
+namespace monty {
 std::unique_ptr<ExprAST> Parser::parseExpression() noexcept {
   auto Lhs = parsePrimery();
   if (!Lhs)
@@ -281,4 +281,4 @@ void Parser::replLoop() noexcept {
   }
 }
 
-} // namespace ggc
+} // namespace monty

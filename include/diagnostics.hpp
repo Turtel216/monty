@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace ggc {
+namespace monty {
 
 enum class DiagCode {
   ExpectedSemicolon,
@@ -29,4 +29,4 @@ public:
   void report(SourceLocation loc, DiagCode code, std::string details) noexcept;
   [[nodiscard]] bool hasError() const noexcept;
 };
-} // namespace ggc
+} // namespace monty

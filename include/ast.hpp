@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-namespace ggc {
+namespace monty {
 class ExprAST {
 public:
   virtual ~ExprAST() = default;
@@ -66,4 +66,4 @@ public:
               std::unique_ptr<ExprAST> _body) noexcept
       : prototype(std::move(_prototype)), body(std::move(_body)) {}
 };
-} // namespace ggc
+} // namespace monty

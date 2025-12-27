@@ -1,6 +1,6 @@
 #pragma once
 
-namespace ggc {
+namespace monty {
 
 class CompilerError {};
-} // namespace ggc
+} // namespace monty

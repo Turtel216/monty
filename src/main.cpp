@@ -2,7 +2,7 @@
 
 int main(int argc, char *argv[]) {
 
-  ggc::Parser parser;
+  monty::Parser parser;
   fprintf(stderr, "ready> ");
   parser.getNextToken();
 

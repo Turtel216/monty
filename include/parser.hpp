@@ -4,7 +4,7 @@
 #include <map>
 #include <memory>
 
-namespace ggc {
+namespace monty {
 
 enum Token {
   token_eof = -1,
@@ -61,4 +61,4 @@ private:
 
   int getTokenPrecedence() const noexcept;
 };
-} // namespace ggc
+} // namespace monty

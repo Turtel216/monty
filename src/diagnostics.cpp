@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <iostream>
 
-namespace ggc {
+namespace monty {
 [[nodiscard]] bool DiagnosticEngine::hasError() const noexcept {
   return errors.empty();
 }
@@ -13,4 +13,4 @@ void DiagnosticEngine::report(SourceLocation loc, DiagCode code,
   std::exit(1);
 }
 
-} // namespace ggc
+} // namespace monty
