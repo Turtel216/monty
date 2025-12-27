@@ -28,6 +28,7 @@ set(SRC_FILES
     src/parser.cpp
     src/diagnostics.cpp
     src/ast.cpp
+    src/generator.cpp
 )
 
 # Main executable

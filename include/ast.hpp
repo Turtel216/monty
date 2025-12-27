@@ -39,6 +39,7 @@ class NumberExprAST : public ExprAST {
 public:
   NumberExprAST(double _val) noexcept : val(_val) {}
   void accept(ASTVisitor &visitor) const noexcept override;
+  double getVal() const noexcept { return this->val; }
 };
 
 class VariableExprAST : public ExprAST {
@@ -48,13 +49,13 @@ public:
   VariableExprAST(const std::string &_name) noexcept : name(_name) {}
 
   void accept(ASTVisitor &visitor) const noexcept override;
+  std::string getName() const noexcept { return this->name; }
 };
 
 class BinaryExprAST : public ExprAST {
+public:
   char op;
   std::unique_ptr<ExprAST> Lhs, Rhs;
-
-public:
   BinaryExprAST(char _op, std::unique_ptr<ExprAST> _Lhs,
                 std::unique_ptr<ExprAST> _Rhs) noexcept
       : op(_op), Lhs(std::move(_Lhs)), Rhs(std::move(_Rhs)) {}
@@ -63,10 +64,9 @@ public:
 };
 
 class FunctionCallExprAST : public ExprAST {
+public:
   std::string caller;
   std::vector<std::unique_ptr<ExprAST>> args;
-
-public:
   FunctionCallExprAST(const std::string &_caller,
                       std::vector<std::unique_ptr<ExprAST>> _args) noexcept
       : caller(_caller), args(std::move(_args)) {};
