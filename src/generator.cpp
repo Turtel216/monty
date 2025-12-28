@@ -6,13 +6,17 @@
 #include <llvm/Transforms/Scalar/GVN.h>
 #include <llvm/Transforms/Scalar/Reassociate.h>
 #include <llvm/Transforms/Scalar/SimplifyCFG.h>
+#include <memory>
 namespace monty {
 
 CodeGenerator::CodeGenerator() noexcept {
+  // Create JIT Compiler
+  this->jit = this->exitOnErr(llvm::orc::KaleidoscopeJIT::Create());
   // Create context and module
   this->llvmContext = std::make_unique<llvm::LLVMContext>();
   this->llvmModule =
       std::make_unique<llvm::Module>("Monty JIT", *this->llvmContext);
+  this->llvmModule->setDataLayout(jit->getDataLayout());
 
   // Create IRBuilder
   this->llvmBuilder = std::make_unique<llvm::IRBuilder<>>(*this->llvmContext);
@@ -172,12 +176,14 @@ void CodeGenerator::visit(const FunctionAST &node) {
     this->namedValues[std::string(Arg.getName())] = &Arg;
 
   node.body->accept(*this);
-  if (llvm::Value *RetVal = lastValue) {
+  if (llvm::Value *retVal = lastValue) {
     // Finish off the function.
-    this->llvmBuilder->CreateRet(RetVal);
+    this->llvmBuilder->CreateRet(retVal);
 
     // Validate the generated code, checking for consistency.
     llvm::verifyFunction(*function);
+
+    this->fpm->run(*function, *this->fam);
 
     lastFunctionValue = function;
     return;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../include/jit.hpp"
 #include "ast.hpp"
 #include <llvm/Analysis/CGSCCPassManager.h>
 #include <llvm/Analysis/LoopAnalysisManager.h>
@@ -30,6 +31,9 @@ struct CodeGenerator : public ASTVisitor {
   std::unique_ptr<llvm::ModuleAnalysisManager> mam;
   std::unique_ptr<llvm::PassInstrumentationCallbacks> pic;
   std::unique_ptr<llvm::StandardInstrumentations> si;
+  std::unique_ptr<llvm::orc::KaleidoscopeJIT> jit;
+
+  llvm::ExitOnError exitOnErr;
 
   llvm::Value *lastValue;
   llvm::Function *lastFunctionValue;

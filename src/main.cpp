@@ -1,7 +1,11 @@
 #include "../include/parser.hpp"
+#include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
 
 int main(int argc, char *argv[]) {
+  llvm::InitializeNativeTarget();
+  llvm::InitializeNativeTargetAsmPrinter();
+  llvm::InitializeNativeTargetAsmParser();
 
   monty::Parser parser;
   monty::CodeGenerator generator;
