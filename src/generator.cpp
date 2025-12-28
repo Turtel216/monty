@@ -1,16 +1,51 @@
 #include "../include/generator.hpp"
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Verifier.h>
-
+#include <llvm/Passes/PassBuilder.h>
+#include <llvm/Transforms/InstCombine/InstCombine.h>
+#include <llvm/Transforms/Scalar/GVN.h>
+#include <llvm/Transforms/Scalar/Reassociate.h>
+#include <llvm/Transforms/Scalar/SimplifyCFG.h>
 namespace monty {
 
 CodeGenerator::CodeGenerator() noexcept {
-
+  // Create context and module
   this->llvmContext = std::make_unique<llvm::LLVMContext>();
   this->llvmModule =
       std::make_unique<llvm::Module>("Monty JIT", *this->llvmContext);
 
+  // Create IRBuilder
   this->llvmBuilder = std::make_unique<llvm::IRBuilder<>>(*this->llvmContext);
+
+  // Create pass and analysis managers
+  this->fpm = std::make_unique<llvm::FunctionPassManager>();
+  this->lam = std::make_unique<llvm::LoopAnalysisManager>();
+  this->fam = std::make_unique<llvm::FunctionAnalysisManager>();
+  this->cgam = std::make_unique<llvm::CGSCCAnalysisManager>();
+  this->mam = std::make_unique<llvm::ModuleAnalysisManager>();
+  this->pic = std::make_unique<llvm::PassInstrumentationCallbacks>();
+  this->si =
+      std::make_unique<llvm::StandardInstrumentations>(*this->llvmContext,
+                                                       /*DebugLogging*/ true);
+  this->si->registerCallbacks(*this->pic, this->mam.get());
+
+  // Add transform passes.
+  // Do simple "peephole" optimizations and bit-twiddling optzns.
+  this->fpm->addPass(llvm::InstCombinePass());
+  // Reassociate expressions.
+  this->fpm->addPass(llvm::ReassociatePass());
+  // Eliminate Common SubExpressions.
+  this->fpm->addPass(llvm::GVNPass());
+  // Simplify the control flow graph (deleting unreachable blocks, etc).
+  this->fpm->addPass(llvm::SimplifyCFGPass());
+
+  // Register analysis passes used in these transform passes.
+  llvm::PassBuilder pb;
+  pb.registerModuleAnalyses(*mam);
+  pb.registerFunctionAnalyses(*fam);
+  pb.crossRegisterProxies(*this->lam, *this->fam, *this->cgam, *this->mam);
+
+  // TODO: Update FunctionAST generator
 }
 
 void CodeGenerator::visit(const NumberExprAST &node) {
