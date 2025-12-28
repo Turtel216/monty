@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../include/ast.hpp"
+#include "generator.hpp"
 #include <map>
 #include <memory>
 
@@ -26,7 +27,8 @@ public:
     binopPrecedence['*'] = 40;
   }
 
-  void replLoop() noexcept; // TODO move logic to compiler driver
+  void replLoop(
+      CodeGenerator &generator) noexcept; // TODO move logic to compiler driver
   int getNextToken() noexcept;
 
 private:
@@ -36,16 +38,16 @@ private:
   double numVal;
   static inline std::map<char, int> binopPrecedence;
 
-  int getToken() noexcept;
-  void handleTopLevelExpression() noexcept;
-
   // TODO add better compiler error handling
   std::unique_ptr<ExprAST> logError(const char *Str) const noexcept;
   std::unique_ptr<FunctionPrototypeAST>
-  logErrorP(const char *Str) const noexcept;
 
-  void handleExtern() noexcept;
-  void handleDefinition() noexcept;
+  logErrorP(const char *Str) const noexcept;
+  int getToken() noexcept;
+
+  void handleExtern(CodeGenerator &generator) noexcept;
+  void handleDefinition(CodeGenerator &generator) noexcept;
+  void handleTopLevelExpression(CodeGenerator &generator) noexcept;
 
   std::unique_ptr<ExprAST> parseExpression() noexcept;
   std::unique_ptr<ExprAST> parseIdentifierExpr() noexcept;

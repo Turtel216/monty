@@ -231,35 +231,53 @@ int Parser::getTokenPrecedence() const noexcept {
   return tokenPrec;
 }
 
-void Parser::handleDefinition() noexcept {
-  if (parseDefinition()) {
-    fprintf(stderr, "Parsed a function definition.\n");
+void Parser::handleDefinition(CodeGenerator &generator) noexcept {
+  if (auto fnAST = parseDefinition()) {
+    generator.visit(*fnAST);
+    if (auto *fnIR = generator.lastFunctionValue) {
+      fprintf(stderr, "Read function definition:");
+      fnIR->print(llvm::errs());
+      fprintf(stderr, "\n");
+    }
   } else {
     // Skip token for error recovery.
     getNextToken();
   }
 }
 
-void Parser::handleExtern() noexcept {
-  if (parseExtern()) {
-    fprintf(stderr, "Parsed an extern\n");
+void Parser::handleExtern(CodeGenerator &generator) noexcept {
+  if (auto protoAST = parseExtern()) {
+    generator.visit(*protoAST);
+    if (auto *fnIR = generator.lastFunctionValue) {
+      fprintf(stderr, "Read extern: ");
+      fnIR->print(llvm::errs());
+      fprintf(stderr, "\n");
+    }
   } else {
     // Skip token for error recovery.
     getNextToken();
   }
 }
 
-void Parser::handleTopLevelExpression() noexcept {
+void Parser::handleTopLevelExpression(CodeGenerator &generator) noexcept {
   // Evaluate a top-level expression into an anonymous function.
-  if (parseTopLevelExpr()) {
-    fprintf(stderr, "Parsed a top-level expr\n");
+  if (auto fnAST = parseTopLevelExpr()) {
+    generator.visit(*fnAST);
+    if (auto *fnIR = generator.lastFunctionValue) {
+      fprintf(stderr, "Read top-level expression:");
+      fnIR->print(llvm::errs());
+      fprintf(stderr, "\n");
+
+      // Remove the anonymous expression.
+      fnIR->eraseFromParent();
+    }
   } else {
     // Skip token for error recovery.
     getNextToken();
   }
 }
 
-void Parser::replLoop() noexcept {
+void Parser::replLoop(CodeGenerator &generator) noexcept {
   while (true) {
     fprintf(stderr, "ready> ");
     switch (curToken) {
@@ -269,13 +287,13 @@ void Parser::replLoop() noexcept {
       getNextToken();
       break;
     case token_def:
-      handleDefinition();
+      handleDefinition(generator);
       break;
     case token_extern:
-      handleExtern();
+      handleExtern(generator);
       break;
     default:
-      handleTopLevelExpression();
+      handleTopLevelExpression(generator);
       break;
     }
   }
