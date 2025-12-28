@@ -2,6 +2,7 @@
 
 #include "ast.hpp"
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
 #include <map>
 #include <memory>
@@ -15,6 +16,9 @@ struct CodeGenerator : public ASTVisitor {
   std::unique_ptr<llvm::Module> llvmModule;
   std::map<std::string, llvm::Value *> namedValues;
   llvm::Value *lastValue;
+  llvm::Function *lastFunctionValue;
+
+  CodeGenerator() noexcept;
 
   // TODO add proper constructors
 

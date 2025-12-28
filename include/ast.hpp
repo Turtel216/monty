@@ -30,7 +30,7 @@ public:
 class ExprAST {
 public:
   virtual ~ExprAST() = default;
-  virtual void accept(ASTVisitor &visitor) const noexcept;
+  virtual void accept(ASTVisitor &visitor) const noexcept = 0;
 };
 
 class NumberExprAST : public ExprAST {
@@ -76,10 +76,10 @@ public:
 
 // Represents a functions declaration
 class FunctionPrototypeAST {
+public:
   std::string name;
   std::vector<std::string> args;
 
-public:
   FunctionPrototypeAST(const std::string &_name,
                        std::vector<std::string> _args) noexcept
       : name(_name), args(std::move(_args)) {};
@@ -90,10 +90,10 @@ public:
 };
 
 class FunctionAST {
+public:
   std::unique_ptr<FunctionPrototypeAST> prototype;
   std::unique_ptr<ExprAST> body;
 
-public:
   FunctionAST(std::unique_ptr<FunctionPrototypeAST> _prototype,
               std::unique_ptr<ExprAST> _body) noexcept
       : prototype(std::move(_prototype)), body(std::move(_body)) {}

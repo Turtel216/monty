@@ -1,14 +1,24 @@
 #include "../include/generator.hpp"
 #include <llvm/IR/Module.h>
+#include <llvm/IR/Verifier.h>
 
 namespace monty {
-void CodeGenerator::visit(const NumberExprAST &visitor) {
-  lastValue =
-      llvm::ConstantFP::get(*llvmContext, llvm::APFloat(visitor.getVal()));
+
+CodeGenerator::CodeGenerator() noexcept {
+
+  this->llvmContext = std::make_unique<llvm::LLVMContext>();
+  this->llvmModule =
+      std::make_unique<llvm::Module>("Monty JIT", *this->llvmContext);
+
+  this->llvmBuilder = std::make_unique<llvm::IRBuilder<>>(*this->llvmContext);
 }
 
-void CodeGenerator::visit(const VariableExprAST &visitor) {
-  llvm::Value *v = namedValues[visitor.getName()];
+void CodeGenerator::visit(const NumberExprAST &node) {
+  lastValue = llvm::ConstantFP::get(*llvmContext, llvm::APFloat(node.getVal()));
+}
+
+void CodeGenerator::visit(const VariableExprAST &node) {
+  llvm::Value *v = namedValues[node.getName()];
 
   if (!v) {
     lastValue = logError("Unkown variable name");
@@ -18,10 +28,10 @@ void CodeGenerator::visit(const VariableExprAST &visitor) {
   lastValue = v;
 }
 
-void CodeGenerator::visit(const BinaryExprAST &visitor) {
-  visitor.Lhs->accept(*this);
+void CodeGenerator::visit(const BinaryExprAST &node) {
+  node.Lhs->accept(*this);
   llvm::Value *l = lastValue;
-  visitor.Rhs->accept(*this);
+  node.Rhs->accept(*this);
   llvm::Value *r = lastValue;
 
   if (!l || !r) {
@@ -29,7 +39,7 @@ void CodeGenerator::visit(const BinaryExprAST &visitor) {
     return;
   }
 
-  switch (visitor.op) {
+  switch (node.op) {
   case '+':
     lastValue = this->llvmBuilder->CreateFAdd(l, r, "addtmp");
     break;
@@ -78,64 +88,73 @@ void CodeGenerator::visit(const FunctionCallExprAST &visitor) {
 
   lastValue = this->llvmBuilder->CreateCall(calleeF, argsV, "calltmp");
 }
-} // namespace monty
 
-// TODO:
-/*
-llvm::Function *
-FunctionPrototypeAST::codegen(GeneratorContext &context) const noexcept {
+void CodeGenerator::visit(const FunctionPrototypeAST &node) {
   std::vector<llvm::Type *> doubles(
-      args.size(), llvm::Type::getDoubleTy(*context.llvmContext));
+      node.args.size(), llvm::Type::getDoubleTy(*this->llvmContext));
 
   llvm::FunctionType *FT = llvm::FunctionType::get(
-      llvm::Type::getDoubleTy(*context.llvmContext), doubles, false);
+      llvm::Type::getDoubleTy(*this->llvmContext), doubles, false);
 
-  llvm::Function *F =
-      llvm::Function::Create(FT, llvm::Function::ExternalLinkage, this->name,
-                             context.llvmModule.get());
+  llvm::Function *F = llvm::Function::Create(
+      FT, llvm::Function::ExternalLinkage, node.name, this->llvmModule.get());
 
   unsigned idx = 0;
   for (auto &Arg : F->args())
-    Arg.setName(this->args[idx++]);
+    Arg.setName(node.args[idx++]);
 
-  return F;
+  lastFunctionValue = F;
 }
 
-llvm::Function *FunctionAST::codegen(GeneratorContext &context) const noexcept {
+void CodeGenerator::visit(const FunctionAST &node) {
   llvm::Function *function =
-      context.llvmModule->getFunction(this->prototype->getName());
+      this->llvmModule->getFunction(node.prototype->getName());
 
-  if (!function)
-    function = this->prototype->codegen(context);
+  if (!function) {
+    node.prototype->accept(*this);
+    function = lastFunctionValue;
+  }
 
-  if (!function)
-    return nullptr;
+  if (!function) {
+    lastValue = nullptr;
+    return;
+  }
 
-  if (!function->empty())
-    return (llvm::Function *)context.logError("Function cannot be redefined.");
+  if (!function->empty()) {
+    lastFunctionValue =
+        (llvm::Function *)logError("Function cannot be redefined.");
+    return;
+  }
 
   // Create a new basic block to start insertion into.
   llvm::BasicBlock *BB =
-      llvm::BasicBlock::Create(*context.llvmContext, "entry", function);
-  context.llvmBuilder->SetInsertPoint(BB);
+      llvm::BasicBlock::Create(*this->llvmContext, "entry", function);
+  this->llvmBuilder->SetInsertPoint(BB);
 
   // Record the function arguments in the NamedValues map.
-  context.namedValues.clear();
+  this->namedValues.clear();
   for (auto &Arg : function->args())
-    context.namedValues[std::string(Arg.getName())] = &Arg;
+    this->namedValues[std::string(Arg.getName())] = &Arg;
 
-  if (llvm::Value *RetVal = body->codegen(context)) {
+  node.body->accept(*this);
+  if (llvm::Value *RetVal = lastValue) {
     // Finish off the function.
-    context.llvmBuilder->CreateRet(RetVal);
+    this->llvmBuilder->CreateRet(RetVal);
 
     // Validate the generated code, checking for consistency.
     llvm::verifyFunction(*function);
 
-    return function;
+    lastFunctionValue = function;
+    return;
   }
 
   // Error reading body, remove function.
   function->eraseFromParent();
+  lastFunctionValue = nullptr;
+}
+
+llvm::Value *CodeGenerator::logError(const char *str) const noexcept {
+  fprintf(stderr, "Error: %s\n", str);
   return nullptr;
 }
-*/
+} // namespace monty

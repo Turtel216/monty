@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.30)
-project(lang LANGUAGES C CXX)
+project(monty LANGUAGES C CXX)
 
 # Enable testing
 include(CTest)
@@ -32,9 +32,9 @@ set(SRC_FILES
 )
 
 # Main executable
-add_executable(ggc ${SRC_FILES})
+add_executable(monty ${SRC_FILES})
 
-target_link_libraries(ggc LLVM)
+target_link_libraries(monty LLVM)
 
 # Tests
 #if (BUILD_TESTING)
