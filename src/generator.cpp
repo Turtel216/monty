@@ -8,10 +8,7 @@
 #include <llvm/Transforms/Scalar/SimplifyCFG.h>
 #include <memory>
 namespace monty {
-
-CodeGenerator::CodeGenerator() noexcept {
-  // Create JIT Compiler
-  this->jit = this->exitOnErr(llvm::orc::KaleidoscopeJIT::Create());
+void CodeGenerator::initializeModuleAndPassManager() noexcept {
   // Create context and module
   this->llvmContext = std::make_unique<llvm::LLVMContext>();
   this->llvmModule =
@@ -48,8 +45,11 @@ CodeGenerator::CodeGenerator() noexcept {
   pb.registerModuleAnalyses(*mam);
   pb.registerFunctionAnalyses(*fam);
   pb.crossRegisterProxies(*this->lam, *this->fam, *this->cgam, *this->mam);
-
-  // TODO: Update FunctionAST generator
+}
+CodeGenerator::CodeGenerator() noexcept {
+  // Create JIT Compiler
+  this->jit = this->exitOnErr(llvm::orc::KaleidoscopeJIT::Create());
+  initializeModuleAndPassManager();
 }
 
 void CodeGenerator::visit(const NumberExprAST &node) {

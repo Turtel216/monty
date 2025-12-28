@@ -44,6 +44,8 @@ struct CodeGenerator : public ASTVisitor {
 
   llvm::Value *logError(const char *str) const noexcept;
 
+  void initializeModuleAndPassManager() noexcept;
+
   void visit(const NumberExprAST &node) override;
   void visit(const VariableExprAST &node) override;
   void visit(const BinaryExprAST &node) override;

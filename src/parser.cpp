@@ -1,5 +1,6 @@
 #include "../include/parser.hpp"
 #include <cctype>
+#include <llvm/ExecutionEngine/Orc/ThreadSafeModule.h>
 #include <memory>
 #include <vector>
 
@@ -149,7 +150,7 @@ std::unique_ptr<FunctionAST> Parser::parseTopLevelExpr() noexcept {
   if (auto expr = parseExpression()) {
     // Make an anonymous proto.
     auto proto = std::make_unique<FunctionPrototypeAST>(
-        "__annon_expr", std::vector<std::string>());
+        "__anon_expr", std::vector<std::string>());
     return std::make_unique<FunctionAST>(std::move(proto), std::move(expr));
   }
   return nullptr;
@@ -264,12 +265,26 @@ void Parser::handleTopLevelExpression(CodeGenerator &generator) noexcept {
   if (auto fnAST = parseTopLevelExpr()) {
     generator.visit(*fnAST);
     if (auto *fnIR = generator.lastFunctionValue) {
-      fprintf(stderr, "Read top-level expression:");
-      fnIR->print(llvm::errs());
-      fprintf(stderr, "\n");
+      // Create a ResourceTracker to track JIT'd memory allocated to our
+      // anonymous expression -- that way we can free it after executing.
+      auto RT = generator.jit->getMainJITDylib().createResourceTracker();
 
-      // Remove the anonymous expression.
-      fnIR->eraseFromParent();
+      auto TSM = llvm::orc::ThreadSafeModule(std::move(generator.llvmModule),
+                                             std::move(generator.llvmContext));
+      generator.exitOnErr(generator.jit->addModule(std::move(TSM), RT));
+      generator.initializeModuleAndPassManager();
+
+      // Search the JIT for the __anon_expr symbol.
+      auto ExprSymbol =
+          generator.exitOnErr(generator.jit->lookup("__anon_expr"));
+
+      // Get the symbol's address and cast it to the right type (takes no
+      // arguments, returns a double) so we can call it as a native function.
+      double (*FP)() = ExprSymbol.getAddress().toPtr<double (*)()>();
+      fprintf(stderr, "Evaluated to %f\n", FP());
+
+      // Delete the anonymous expression module from the JIT.
+      generator.exitOnErr(RT->remove());
     }
   } else {
     // Skip token for error recovery.
