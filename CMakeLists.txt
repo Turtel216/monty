@@ -29,6 +29,7 @@ set(SRC_FILES
     src/diagnostics.cpp
     src/ast.cpp
     src/generator.cpp
+    src/driver.cpp
 )
 
 # Main executable

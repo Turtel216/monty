@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../include/ast.hpp"
-#include "generator.hpp"
 #include <map>
 #include <memory>
 
@@ -27,9 +26,12 @@ public:
     binopPrecedence['*'] = 40;
   }
 
-  void replLoop(
-      CodeGenerator &generator) noexcept; // TODO move logic to compiler driver
   int getNextToken() noexcept;
+  int getCurrentToken() const noexcept { return this->curToken; }
+
+  std::unique_ptr<FunctionAST> parseTopLevelExpr() noexcept;
+  std::unique_ptr<FunctionAST> parseDefinition() noexcept;
+  std::unique_ptr<FunctionPrototypeAST> parseExtern() noexcept;
 
 private:
   bool panicing;
@@ -45,10 +47,6 @@ private:
   logErrorP(const char *Str) const noexcept;
   int getToken() noexcept;
 
-  void handleExtern(CodeGenerator &generator) noexcept;
-  void handleDefinition(CodeGenerator &generator) noexcept;
-  void handleTopLevelExpression(CodeGenerator &generator) noexcept;
-
   std::unique_ptr<ExprAST> parseExpression() noexcept;
   std::unique_ptr<ExprAST> parseIdentifierExpr() noexcept;
   std::unique_ptr<ExprAST> parsePrimery() noexcept;
@@ -57,9 +55,6 @@ private:
   std::unique_ptr<ExprAST> parseNumberExpr() noexcept;
   std::unique_ptr<ExprAST> parseParenExpr() noexcept;
   std::unique_ptr<FunctionPrototypeAST> parsePrototype() noexcept;
-  std::unique_ptr<FunctionAST> parseDefinition() noexcept;
-  std::unique_ptr<FunctionPrototypeAST> parseExtern() noexcept;
-  std::unique_ptr<FunctionAST> parseTopLevelExpr() noexcept;
 
   int getTokenPrecedence() const noexcept;
 };

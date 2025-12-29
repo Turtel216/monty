@@ -1,3 +1,5 @@
+#include "../include/driver.hpp"
+#include "../include/generator.hpp"
 #include "../include/parser.hpp"
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
@@ -12,7 +14,7 @@ int main(int argc, char *argv[]) {
   fprintf(stderr, "ready> ");
   parser.getNextToken();
 
-  parser.replLoop(generator);
+  monty::process(generator, parser);
 
   generator.llvmModule->print(llvm::errs(), nullptr);
 
