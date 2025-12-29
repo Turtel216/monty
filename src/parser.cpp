@@ -128,27 +128,56 @@ std::unique_ptr<ExprAST> Parser::parseNumberExpr() noexcept {
 }
 
 std::unique_ptr<FunctionPrototypeAST> Parser::parsePrototype() noexcept {
-  if (curToken != token_identifier)
-    return logErrorP("Expected function name prototype");
+  std::string fnName;
 
-  std::string fnName = identifierStr;
-  getNextToken();
+  unsigned kind = 0; // 0 = identifier, 1 = unary, 2 = binary.
+  unsigned binaryPrecedence = 30;
 
-  if (curToken != '(')
-    return logErrorP("Expected ')' in protortpe");
+  switch (this->curToken) {
+  default:
+    return logErrorP("Expected function name in prototype");
+  case token_identifier:
+    fnName = this->identifierStr;
+    kind = 0;
+    getNextToken();
+    break;
+  case token_binary:
+    getNextToken();
+    if (!isascii(this->curToken))
+      return logErrorP("Expected binary operator");
+    fnName = "binary";
+    fnName += (char)this->curToken;
+    kind = 2;
+    getNextToken();
 
-  // parse arguments
+    // Read the precedence if present.
+    if (this->curToken == token_number) {
+      if (this->numVal < 1 || this->numVal > 100)
+        return logErrorP("Invalid precedence: must be 1..100");
+      binaryPrecedence = (unsigned)this->numVal;
+      getNextToken();
+    }
+    break;
+  }
+
+  if (this->curToken != '(')
+    return logErrorP("Expected '(' in prototype");
+
   std::vector<std::string> argNames;
   while (getNextToken() == token_identifier)
-    argNames.push_back(identifierStr);
+    argNames.push_back(this->identifierStr);
+  if (this->curToken != ')')
+    return logErrorP("Expected ')' in prototype");
 
-  if (curToken != ')')
-    return logErrorP("Expected ')' in protortpe");
+  // success.
+  getNextToken(); // eat ')'.
 
-  // eat ')'
-  getNextToken();
+  // Verify right number of names for operator.
+  if (kind && argNames.size() != kind)
+    return logErrorP("Invalid number of operands for operator");
 
-  return std::make_unique<FunctionPrototypeAST>(fnName, std::move(argNames));
+  return std::make_unique<FunctionPrototypeAST>(fnName, std::move(argNames),
+                                                kind != 0, binaryPrecedence);
 }
 
 std::unique_ptr<FunctionAST> Parser::parseDefinition() noexcept {
