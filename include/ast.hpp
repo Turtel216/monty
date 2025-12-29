@@ -11,6 +11,7 @@ namespace monty {
 class NumberExprAST;
 class VariableExprAST;
 class BinaryExprAST;
+class IfExprAST;
 class FunctionCallExprAST;
 class FunctionPrototypeAST;
 class FunctionAST;
@@ -22,6 +23,7 @@ public:
   virtual void visit(const NumberExprAST &node) = 0;
   virtual void visit(const VariableExprAST &node) = 0;
   virtual void visit(const BinaryExprAST &node) = 0;
+  virtual void visit(const IfExprAST &node) = 0;
   virtual void visit(const FunctionCallExprAST &node) = 0;
   virtual void visit(const FunctionPrototypeAST &node) = 0;
   virtual void visit(const FunctionAST &node) = 0;
@@ -66,6 +68,18 @@ public:
   void accept(ASTVisitor &visitor) const noexcept override;
 };
 
+class IfExprAST : public ExprAST {
+public:
+  std::unique_ptr<ExprAST> cond, then, otherwise;
+
+  IfExprAST(std::unique_ptr<ExprAST> _cond, std::unique_ptr<ExprAST> _then,
+            std::unique_ptr<ExprAST> _otherwise) noexcept
+      : cond(std::move(_cond)), then(std::move(_then)),
+        otherwise(std::move(_otherwise)) {}
+
+  void accept(ASTVisitor &visitor) const noexcept override;
+};
+
 class FunctionCallExprAST : public ExprAST {
 private:
   std::string caller;
@@ -75,7 +89,7 @@ public:
 
   FunctionCallExprAST(const std::string &_caller,
                       std::vector<std::unique_ptr<ExprAST>> _args) noexcept
-      : caller(_caller), args(std::move(_args)) {};
+      : caller(_caller), args(std::move(_args)) {}
 
   std::string getCaller() const noexcept { return this->caller; }
   void accept(ASTVisitor &visitor) const noexcept override;

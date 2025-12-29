@@ -13,15 +13,23 @@ void NumberExprAST::accept(ASTVisitor &visitor) const noexcept {
 void VariableExprAST::accept(ASTVisitor &visitor) const noexcept {
   visitor.visit(*this);
 }
+
 void BinaryExprAST::accept(ASTVisitor &visitor) const noexcept {
   visitor.visit(*this);
 }
+
+void IfExprAST::accept(ASTVisitor &visitor) const noexcept {
+  visitor.visit(*this);
+}
+
 void FunctionCallExprAST::accept(ASTVisitor &visitor) const noexcept {
   visitor.visit(*this);
 }
+
 void FunctionPrototypeAST::accept(ASTVisitor &visitor) const noexcept {
   visitor.visit(*this);
 }
+
 void FunctionAST::accept(ASTVisitor &visitor) const noexcept {
   visitor.visit(*this);
 }

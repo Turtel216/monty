@@ -1,4 +1,5 @@
 #include "../include/generator.hpp"
+#include <llvm/IR/Constants.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Passes/PassBuilder.h>
@@ -101,8 +102,78 @@ void CodeGenerator::visit(const BinaryExprAST &node) {
   }
 }
 
-void CodeGenerator::visit(const FunctionCallExprAST &visitor) {
-  llvm::Function *calleeF = this->llvmModule->getFunction(visitor.getCaller());
+void CodeGenerator::visit(const IfExprAST &node) {
+  // Emit expression for the condition
+  node.cond->accept(*this);
+  llvm::Value *condV = this->lastValue;
+
+  if (!condV) {
+    this->lastValue = nullptr;
+    return;
+  }
+
+  // Compare the value to zero to get a truth value as 1-bit
+  condV = this->llvmBuilder->CreateFCmpONE(
+      condV, llvm::ConstantFP::get(*this->llvmContext, llvm::APFloat(0.0)),
+      "ifcond");
+
+  llvm::Function *function = this->llvmBuilder->GetInsertBlock()->getParent();
+
+  // Create blocks for the then and else cases.  Insert the 'then' block at the
+  // end of the function.
+  llvm::BasicBlock *thenBB =
+      llvm::BasicBlock::Create(*this->llvmContext, "then", function);
+  llvm::BasicBlock *elseBB =
+      llvm::BasicBlock::Create(*this->llvmContext, "else");
+  llvm::BasicBlock *mergeBB =
+      llvm::BasicBlock::Create(*this->llvmContext, "ifcont");
+
+  this->llvmBuilder->CreateCondBr(condV, thenBB, elseBB);
+
+  // Emit then value.
+  this->llvmBuilder->SetInsertPoint(thenBB);
+
+  node.then->accept(*this);
+  llvm::Value *thenV = lastValue;
+
+  if (!thenV) {
+    lastValue = nullptr;
+    return;
+  }
+
+  this->llvmBuilder->CreateBr(mergeBB);
+  // Codegen of 'Then' can change the current block, update ThenBB for the PHI.
+  thenBB = this->llvmBuilder->GetInsertBlock();
+
+  // Emit else block.
+  function->insert(function->end(), elseBB);
+  this->llvmBuilder->SetInsertPoint(elseBB);
+
+  node.otherwise->accept(*this);
+  llvm::Value *elseV = this->lastValue;
+
+  if (!elseV) {
+    lastValue = nullptr;
+    return;
+  }
+
+  this->llvmBuilder->CreateBr(mergeBB);
+  // codegen of 'Else' can change the current block, update ElseBB for the PHI.
+  elseBB = this->llvmBuilder->GetInsertBlock();
+
+  // Emit merge block.
+  function->insert(function->end(), mergeBB);
+  this->llvmBuilder->SetInsertPoint(mergeBB);
+  llvm::PHINode *pn = this->llvmBuilder->CreatePHI(
+      llvm::Type::getDoubleTy(*this->llvmContext), 2, "iftmp");
+
+  pn->addIncoming(thenV, thenBB);
+  pn->addIncoming(elseV, elseBB);
+  lastValue = pn;
+}
+
+void CodeGenerator::visit(const FunctionCallExprAST &node) {
+  llvm::Function *calleeF = this->llvmModule->getFunction(node.getCaller());
 
   if (!calleeF) {
     this->lastValue = logError("Unknown function referenced");
@@ -110,14 +181,14 @@ void CodeGenerator::visit(const FunctionCallExprAST &visitor) {
   }
 
   // If argument mismatch error.
-  if (calleeF->arg_size() != visitor.args.size()) {
+  if (calleeF->arg_size() != node.args.size()) {
     this->lastValue = logError("Incorrect # arguments passed");
     return;
   }
 
   std::vector<llvm::Value *> argsV;
-  for (unsigned i = 0, e = visitor.args.size(); i != e; ++i) {
-    visitor.args[i]->accept(*this);
+  for (unsigned i = 0, e = node.args.size(); i != e; ++i) {
+    node.args[i]->accept(*this);
     argsV.push_back(this->lastValue);
 
     if (!argsV.back()) {

@@ -77,6 +77,35 @@ Parser::parseBinOpRhs(int exprPrec, std::unique_ptr<ExprAST> Lhs) noexcept {
   }
 }
 
+std::unique_ptr<ExprAST> Parser::ParseIfExpr() noexcept {
+  getNextToken(); // eat the if.
+
+  // condition.
+  auto cond = parseExpression();
+  if (!cond)
+    return nullptr;
+
+  if (this->curToken != token_then)
+    return logError("expected then");
+  getNextToken(); // eat the then
+
+  auto then = parseExpression();
+  if (!then)
+    return nullptr;
+
+  if (this->curToken != token_else)
+    return logError("expected else");
+
+  getNextToken();
+
+  auto otherwise = parseExpression();
+  if (!otherwise)
+    return nullptr;
+
+  return std::make_unique<IfExprAST>(std::move(cond), std::move(then),
+                                     std::move(otherwise));
+}
+
 std::unique_ptr<ExprAST> Parser::parsePrimery() noexcept {
   switch (curToken) {
   case token_identifier:
@@ -85,6 +114,8 @@ std::unique_ptr<ExprAST> Parser::parsePrimery() noexcept {
     return parseNumberExpr();
   case '(':
     return parseParenExpr();
+  case token_if:
+    return ParseIfExpr();
   default:
     return logError("unknown token when expecting an expression");
   }
@@ -187,6 +218,12 @@ int Parser::getToken() noexcept {
       return token_def;
     if (identifierStr == "extern")
       return token_extern;
+    if (identifierStr == "if")
+      return token_if;
+    if (identifierStr == "then")
+      return token_then;
+    if (identifierStr == "else")
+      return token_else;
     return token_identifier;
   }
 
