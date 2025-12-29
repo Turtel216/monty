@@ -27,7 +27,7 @@ void process(CodeGenerator &generator, Parser &parser) noexcept {
 void handleExtern(CodeGenerator &generator, Parser &parser) noexcept {
   if (auto protoAST = parser.parseExtern()) {
     generator.visit(*protoAST);
-    if (auto *fnIR = generator.lastFunctionValue) {
+    if (auto *fnIR = generator.getLastFunctionValue()) {
       fprintf(stderr, "Read extern: ");
       fnIR->print(llvm::errs());
       fprintf(stderr, "\n");
@@ -41,7 +41,7 @@ void handleDefinition(CodeGenerator &generator, Parser &parser) noexcept {
 
   if (auto fnAST = parser.parseDefinition()) {
     generator.visit(*fnAST);
-    if (auto *fnIR = generator.lastFunctionValue) {
+    if (auto *fnIR = generator.getLastFunctionValue()) {
       fprintf(stderr, "Read function definition:");
       fnIR->print(llvm::errs());
       fprintf(stderr, "\n");
@@ -56,7 +56,7 @@ void handleTopLevelExpression(CodeGenerator &generator,
   // Evaluate a top-level expression into an anonymous function.
   if (auto fnAST = parser.parseTopLevelExpr()) {
     generator.visit(*fnAST);
-    if (auto *fnIR = generator.lastFunctionValue) {
+    if (auto *fnIR = generator.getLastFunctionValue()) {
       // Create a ResourceTracker to track JIT'd memory allocated to our
       // anonymous expression -- that way we can free it after executing.
       auto RT = generator.jit->getMainJITDylib().createResourceTracker();

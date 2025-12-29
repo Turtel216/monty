@@ -53,49 +53,50 @@ CodeGenerator::CodeGenerator() noexcept {
 }
 
 void CodeGenerator::visit(const NumberExprAST &node) {
-  lastValue = llvm::ConstantFP::get(*llvmContext, llvm::APFloat(node.getVal()));
+  this->lastValue =
+      llvm::ConstantFP::get(*llvmContext, llvm::APFloat(node.getVal()));
 }
 
 void CodeGenerator::visit(const VariableExprAST &node) {
   llvm::Value *v = namedValues[node.getName()];
 
   if (!v) {
-    lastValue = logError("Unkown variable name");
+    this->lastValue = logError("Unkown variable name");
     return;
   }
 
-  lastValue = v;
+  this->lastValue = v;
 }
 
 void CodeGenerator::visit(const BinaryExprAST &node) {
   node.Lhs->accept(*this);
-  llvm::Value *l = lastValue;
+  llvm::Value *l = this->lastValue;
   node.Rhs->accept(*this);
-  llvm::Value *r = lastValue;
+  llvm::Value *r = this->lastValue;
 
   if (!l || !r) {
-    lastValue = nullptr;
+    this->lastValue = nullptr;
     return;
   }
 
   switch (node.op) {
   case '+':
-    lastValue = this->llvmBuilder->CreateFAdd(l, r, "addtmp");
+    this->lastValue = this->llvmBuilder->CreateFAdd(l, r, "addtmp");
     break;
   case '-':
-    lastValue = this->llvmBuilder->CreateFSub(l, r, "subtmp");
+    this->lastValue = this->llvmBuilder->CreateFSub(l, r, "subtmp");
     break;
   case '*':
-    lastValue = this->llvmBuilder->CreateFMul(l, r, "multmp");
+    this->lastValue = this->llvmBuilder->CreateFMul(l, r, "multmp");
     break;
   case '<':
     l = this->llvmBuilder->CreateFCmpULT(l, r, "cmptmp");
     // Convert bool 0/1 to double 0.0 or 1.0
-    lastValue = this->llvmBuilder->CreateUIToFP(
+    this->lastValue = this->llvmBuilder->CreateUIToFP(
         l, llvm::Type::getDoubleTy(*this->llvmContext), "booltmp");
     break;
   default:
-    lastValue = logError("invalid binary operator");
+    this->lastValue = logError("invalid binary operator");
     break;
   }
 }
@@ -104,28 +105,28 @@ void CodeGenerator::visit(const FunctionCallExprAST &visitor) {
   llvm::Function *calleeF = this->llvmModule->getFunction(visitor.caller);
 
   if (!calleeF) {
-    lastValue = logError("Unknown function referenced");
+    this->lastValue = logError("Unknown function referenced");
     return;
   }
 
   // If argument mismatch error.
   if (calleeF->arg_size() != visitor.args.size()) {
-    lastValue = logError("Incorrect # arguments passed");
+    this->lastValue = logError("Incorrect # arguments passed");
     return;
   }
 
   std::vector<llvm::Value *> argsV;
   for (unsigned i = 0, e = visitor.args.size(); i != e; ++i) {
     visitor.args[i]->accept(*this);
-    argsV.push_back(lastValue);
+    argsV.push_back(this->lastValue);
 
     if (!argsV.back()) {
-      lastValue = nullptr;
+      this->lastValue = nullptr;
       return;
     }
   }
 
-  lastValue = this->llvmBuilder->CreateCall(calleeF, argsV, "calltmp");
+  this->lastValue = this->llvmBuilder->CreateCall(calleeF, argsV, "calltmp");
 }
 
 void CodeGenerator::visit(const FunctionPrototypeAST &node) {
@@ -142,7 +143,7 @@ void CodeGenerator::visit(const FunctionPrototypeAST &node) {
   for (auto &Arg : F->args())
     Arg.setName(node.args[idx++]);
 
-  lastFunctionValue = F;
+  this->lastFunctionValue = F;
 }
 
 void CodeGenerator::visit(const FunctionAST &node) {
@@ -151,16 +152,16 @@ void CodeGenerator::visit(const FunctionAST &node) {
 
   if (!function) {
     node.prototype->accept(*this);
-    function = lastFunctionValue;
+    function = this->lastFunctionValue;
   }
 
   if (!function) {
-    lastValue = nullptr;
+    this->lastValue = nullptr;
     return;
   }
 
   if (!function->empty()) {
-    lastFunctionValue =
+    this->lastFunctionValue =
         (llvm::Function *)logError("Function cannot be redefined.");
     return;
   }
@@ -176,7 +177,7 @@ void CodeGenerator::visit(const FunctionAST &node) {
     this->namedValues[std::string(Arg.getName())] = &Arg;
 
   node.body->accept(*this);
-  if (llvm::Value *retVal = lastValue) {
+  if (llvm::Value *retVal = this->lastValue) {
     // Finish off the function.
     this->llvmBuilder->CreateRet(retVal);
 
@@ -185,13 +186,13 @@ void CodeGenerator::visit(const FunctionAST &node) {
 
     this->fpm->run(*function, *this->fam);
 
-    lastFunctionValue = function;
+    this->lastFunctionValue = function;
     return;
   }
 
   // Error reading body, remove function.
   function->eraseFromParent();
-  lastFunctionValue = nullptr;
+  this->lastFunctionValue = nullptr;
 }
 
 llvm::Value *CodeGenerator::logError(const char *str) const noexcept {

@@ -16,13 +16,10 @@
 
 namespace monty {
 
-struct CodeGenerator : public ASTVisitor {
-  // LLVM builder utils
-  std::unique_ptr<llvm::LLVMContext> llvmContext;
-  std::unique_ptr<llvm::IRBuilder<>> llvmBuilder;
-  std::unique_ptr<llvm::Module> llvmModule;
-  // Symbol table
-  std::map<std::string, llvm::Value *> namedValues;
+class CodeGenerator : public ASTVisitor {
+private:
+  llvm::Value *lastValue;
+  llvm::Function *lastFunctionValue;
   // LLVM analysis managers
   std::unique_ptr<llvm::FunctionPassManager> fpm;
   std::unique_ptr<llvm::LoopAnalysisManager> lam;
@@ -31,21 +28,33 @@ struct CodeGenerator : public ASTVisitor {
   std::unique_ptr<llvm::ModuleAnalysisManager> mam;
   std::unique_ptr<llvm::PassInstrumentationCallbacks> pic;
   std::unique_ptr<llvm::StandardInstrumentations> si;
+
+public:
+  // LLVM builder utils
+  std::unique_ptr<llvm::LLVMContext> llvmContext;
+  std::unique_ptr<llvm::IRBuilder<>> llvmBuilder;
+  std::unique_ptr<llvm::Module> llvmModule;
+  // Symbol table
+  std::map<std::string, llvm::Value *> namedValues;
+  // JIT Compilation runtime
   std::unique_ptr<llvm::orc::KaleidoscopeJIT> jit;
 
+  // LLVM util for exiting on code generation error
   llvm::ExitOnError exitOnErr;
-
-  llvm::Value *lastValue;
-  llvm::Function *lastFunctionValue;
 
   CodeGenerator() noexcept;
 
-  // TODO add proper constructors
-
+  // TODO: Update error handling
   llvm::Value *logError(const char *str) const noexcept;
+
+  llvm::Value *getLastValue() const noexcept { return this->lastValue; }
+  llvm::Function *getLastFunctionValue() const noexcept {
+    return this->lastFunctionValue;
+  }
 
   void initializeModuleAndPassManager() noexcept;
 
+  // ASTVisitor interface
   void visit(const NumberExprAST &node) override;
   void visit(const VariableExprAST &node) override;
   void visit(const BinaryExprAST &node) override;
