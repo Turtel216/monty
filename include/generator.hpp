@@ -29,6 +29,8 @@ private:
   std::unique_ptr<llvm::PassInstrumentationCallbacks> pic;
   std::unique_ptr<llvm::StandardInstrumentations> si;
 
+  llvm::Function *getFunction(std::string name) noexcept;
+
 public:
   // LLVM builder utils
   std::unique_ptr<llvm::LLVMContext> llvmContext;
@@ -36,6 +38,8 @@ public:
   std::unique_ptr<llvm::Module> llvmModule;
   // Symbol table
   std::map<std::string, llvm::Value *> namedValues;
+  std::map<std::string, std::unique_ptr<FunctionPrototypeAST>>
+      functionPrototypes;
   // JIT Compilation runtime
   std::unique_ptr<llvm::orc::KaleidoscopeJIT> jit;
 
@@ -61,6 +65,6 @@ public:
   void visit(const IfExprAST &node) override;
   void visit(const FunctionCallExprAST &node) override;
   void visit(const FunctionPrototypeAST &node) override;
-  void visit(const FunctionAST &node) override;
+  void visit(FunctionAST &node) override;
 };
 } // namespace monty

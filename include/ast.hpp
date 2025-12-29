@@ -26,7 +26,7 @@ public:
   virtual void visit(const IfExprAST &node) = 0;
   virtual void visit(const FunctionCallExprAST &node) = 0;
   virtual void visit(const FunctionPrototypeAST &node) = 0;
-  virtual void visit(const FunctionAST &node) = 0;
+  virtual void visit(FunctionAST &node) = 0;
 };
 
 class ExprAST {
@@ -121,7 +121,7 @@ public:
               std::unique_ptr<ExprAST> _body) noexcept
       : prototype(std::move(_prototype)), body(std::move(_body)) {}
 
-  void accept(ASTVisitor &visitor) const noexcept;
+  void accept(ASTVisitor &visitor) noexcept;
 };
 
 } // namespace monty

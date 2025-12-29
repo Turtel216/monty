@@ -173,7 +173,7 @@ void CodeGenerator::visit(const IfExprAST &node) {
 }
 
 void CodeGenerator::visit(const FunctionCallExprAST &node) {
-  llvm::Function *calleeF = this->llvmModule->getFunction(node.getCaller());
+  llvm::Function *calleeF = getFunction(node.getCaller());
 
   if (!calleeF) {
     this->lastValue = logError("Unknown function referenced");
@@ -218,23 +218,14 @@ void CodeGenerator::visit(const FunctionPrototypeAST &node) {
   this->lastFunctionValue = F;
 }
 
-void CodeGenerator::visit(const FunctionAST &node) {
-  llvm::Function *function =
-      this->llvmModule->getFunction(node.prototype->getName());
+void CodeGenerator::visit(FunctionAST &node) {
+  auto &P = *node.prototype;
+  this->functionPrototypes[node.prototype->getName()] =
+      std::move(node.prototype);
 
+  llvm::Function *function = getFunction(P.getName());
   if (!function) {
-    node.prototype->accept(*this);
-    function = this->lastFunctionValue;
-  }
-
-  if (!function) {
-    this->lastValue = nullptr;
-    return;
-  }
-
-  if (!function->empty()) {
-    this->lastFunctionValue =
-        (llvm::Function *)logError("Function cannot be redefined.");
+    lastFunctionValue = nullptr;
     return;
   }
 
@@ -269,6 +260,22 @@ void CodeGenerator::visit(const FunctionAST &node) {
 
 llvm::Value *CodeGenerator::logError(const char *str) const noexcept {
   fprintf(stderr, "Error: %s\n", str);
+  return nullptr;
+}
+
+llvm::Function *CodeGenerator::getFunction(std::string name) noexcept {
+  // check if function has already bin added to the current module
+  if (auto *f = this->llvmModule->getFunction(name)) {
+    return f;
+  }
+
+  // check if the declaration can be generated from an existing prototype
+  auto fi = this->functionPrototypes.find(name);
+  if (fi != this->functionPrototypes.end()) {
+    fi->second->accept(*this);
+    return lastFunctionValue;
+  }
+
   return nullptr;
 }
 } // namespace monty

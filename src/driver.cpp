@@ -31,6 +31,8 @@ void handleExtern(CodeGenerator &generator, Parser &parser) noexcept {
       fprintf(stderr, "Read extern: ");
       fnIR->print(llvm::errs());
       fprintf(stderr, "\n");
+
+      generator.functionPrototypes[protoAST->getName()] = std::move(protoAST);
     }
   } else {
     // Skip token for error recovery.
@@ -38,13 +40,18 @@ void handleExtern(CodeGenerator &generator, Parser &parser) noexcept {
   }
 }
 void handleDefinition(CodeGenerator &generator, Parser &parser) noexcept {
-
   if (auto fnAST = parser.parseDefinition()) {
     generator.visit(*fnAST);
+
     if (auto *fnIR = generator.getLastFunctionValue()) {
       fprintf(stderr, "Read function definition:");
       fnIR->print(llvm::errs());
       fprintf(stderr, "\n");
+
+      generator.exitOnErr(generator.jit->addModule(llvm::orc::ThreadSafeModule(
+          std::move(generator.llvmModule), std::move(generator.llvmContext))));
+
+      generator.initializeModuleAndPassManager();
     }
   } else {
     // Skip token for error recovery.

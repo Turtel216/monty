@@ -30,7 +30,5 @@ void FunctionPrototypeAST::accept(ASTVisitor &visitor) const noexcept {
   visitor.visit(*this);
 }
 
-void FunctionAST::accept(ASTVisitor &visitor) const noexcept {
-  visitor.visit(*this);
-}
+void FunctionAST::accept(ASTVisitor &visitor) noexcept { visitor.visit(*this); }
 } // namespace monty
