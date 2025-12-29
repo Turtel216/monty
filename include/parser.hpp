@@ -52,6 +52,7 @@ private:
   std::unique_ptr<ExprAST> parseExpression() noexcept;
   std::unique_ptr<ExprAST> parseIdentifierExpr() noexcept;
   std::unique_ptr<ExprAST> parsePrimery() noexcept;
+  std::unique_ptr<ExprAST> parseUnary() noexcept;
   std::unique_ptr<ExprAST> parseBinOpRhs(int exprPrec,
                                          std::unique_ptr<ExprAST> Lhs) noexcept;
   std::unique_ptr<ExprAST> ParseIfExpr() noexcept;

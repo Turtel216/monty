@@ -11,6 +11,7 @@ namespace monty {
 class NumberExprAST;
 class VariableExprAST;
 class BinaryExprAST;
+class UnaryExprAST;
 class IfExprAST;
 class FunctionCallExprAST;
 class FunctionPrototypeAST;
@@ -23,6 +24,7 @@ public:
   virtual void visit(const NumberExprAST &node) = 0;
   virtual void visit(const VariableExprAST &node) = 0;
   virtual void visit(const BinaryExprAST &node) = 0;
+  virtual void visit(const UnaryExprAST &node) = 0;
   virtual void visit(const IfExprAST &node) = 0;
   virtual void visit(const FunctionCallExprAST &node) = 0;
   virtual void visit(const FunctionPrototypeAST &node) = 0;
@@ -65,6 +67,21 @@ public:
       : op(_op), Lhs(std::move(_Lhs)), Rhs(std::move(_Rhs)) {}
 
   char getOp() const noexcept { return this->op; }
+  void accept(ASTVisitor &visitor) const noexcept override;
+};
+
+class UnaryExprAST : public ExprAST {
+private:
+  char opcode;
+
+public:
+  std::unique_ptr<ExprAST> operand;
+
+  UnaryExprAST(char _opcode, std::unique_ptr<ExprAST> _operand)
+      : opcode(_opcode), operand(std::move(_operand)) {}
+
+  char getOpcode() const noexcept { return this->opcode; }
+
   void accept(ASTVisitor &visitor) const noexcept override;
 };
 

@@ -18,6 +18,10 @@ void BinaryExprAST::accept(ASTVisitor &visitor) const noexcept {
   visitor.visit(*this);
 }
 
+void UnaryExprAST::accept(ASTVisitor &visitor) const noexcept {
+  visitor.visit(*this);
+}
+
 void IfExprAST::accept(ASTVisitor &visitor) const noexcept {
   visitor.visit(*this);
 }

@@ -102,6 +102,23 @@ void CodeGenerator::visit(const BinaryExprAST &node) {
   this->lastValue = this->llvmBuilder->CreateCall(F, Ops, "binop");
 }
 
+void CodeGenerator::visit(const UnaryExprAST &node) {
+  node.operand->accept(*this);
+  llvm::Value *OperandV = lastValue;
+  if (!OperandV) {
+    lastValue = nullptr;
+    return;
+  }
+
+  llvm::Function *F = getFunction(std::string("unary") + node.getOpcode());
+  if (!F) {
+    lastValue = logError("Unknown unary operator");
+    return;
+  }
+
+  lastValue = this->llvmBuilder->CreateCall(F, OperandV, "unop");
+}
+
 void CodeGenerator::visit(const IfExprAST &node) {
   // Emit expression for the condition
   node.cond->accept(*this);

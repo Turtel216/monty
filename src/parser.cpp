@@ -6,7 +6,7 @@
 
 namespace monty {
 std::unique_ptr<ExprAST> Parser::parseExpression() noexcept {
-  auto Lhs = parsePrimery();
+  auto Lhs = parseUnary();
   if (!Lhs)
     return nullptr;
 
@@ -60,7 +60,7 @@ Parser::parseBinOpRhs(int exprPrec, std::unique_ptr<ExprAST> Lhs) noexcept {
     int binOp = curToken;
     getNextToken(); // eat bin op
 
-    auto Rhs = parsePrimery();
+    auto Rhs = parseUnary();
     if (!Rhs)
       return nullptr;
 
@@ -75,6 +75,20 @@ Parser::parseBinOpRhs(int exprPrec, std::unique_ptr<ExprAST> Lhs) noexcept {
     Lhs =
         std::make_unique<BinaryExprAST>(binOp, std::move(Lhs), std::move(Rhs));
   }
+}
+
+std::unique_ptr<ExprAST> Parser::parseUnary() noexcept {
+  // If the current token is not an operator, it must be a primary expr.
+  if (!isascii(this->curToken) || this->curToken == '(' ||
+      this->curToken == ',')
+    return parsePrimery();
+
+  // If this is a unary operator, read it.
+  int opc = this->curToken;
+  getNextToken();
+  if (auto Operand = parseUnary())
+    return std::make_unique<UnaryExprAST>(opc, std::move(Operand));
+  return nullptr;
 }
 
 std::unique_ptr<ExprAST> Parser::ParseIfExpr() noexcept {
@@ -139,6 +153,15 @@ std::unique_ptr<FunctionPrototypeAST> Parser::parsePrototype() noexcept {
   case token_identifier:
     fnName = this->identifierStr;
     kind = 0;
+    getNextToken();
+    break;
+  case token_unary:
+    getNextToken();
+    if (!isascii(this->curToken))
+      return logErrorP("Expected unary operator");
+    fnName = "unary";
+    fnName += (char)this->curToken;
+    kind = 1;
     getNextToken();
     break;
   case token_binary:

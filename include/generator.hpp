@@ -69,6 +69,7 @@ public:
   void visit(const NumberExprAST &node) override;
   void visit(const VariableExprAST &node) override;
   void visit(const BinaryExprAST &node) override;
+  void visit(const UnaryExprAST &node) override;
   void visit(const IfExprAST &node) override;
   void visit(const FunctionCallExprAST &node) override;
   void visit(const FunctionPrototypeAST &node) override;
