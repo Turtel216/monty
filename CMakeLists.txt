@@ -30,6 +30,7 @@ set(SRC_FILES
     src/ast.cpp
     src/generator.cpp
     src/driver.cpp
+    src/cli.cpp
 )
 
 # Main executable
