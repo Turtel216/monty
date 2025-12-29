@@ -18,6 +18,9 @@ enum Token {
   token_if = -6,
   token_then = -7,
   token_else = -8,
+
+  token_binary = -9,
+  token_unary = -12,
 };
 
 class Parser {

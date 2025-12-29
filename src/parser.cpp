@@ -216,7 +216,7 @@ int Parser::getToken() noexcept {
 
     if (identifierStr == "fn")
       return token_def;
-    if (identifierStr == "extern")
+    if (identifierStr == "using")
       return token_extern;
     if (identifierStr == "if")
       return token_if;
@@ -224,6 +224,11 @@ int Parser::getToken() noexcept {
       return token_then;
     if (identifierStr == "else")
       return token_else;
+    if (identifierStr == "binary")
+      return token_binary;
+    if (identifierStr == "unary")
+      return token_unary;
+
     return token_identifier;
   }
 
