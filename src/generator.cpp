@@ -79,7 +79,7 @@ void CodeGenerator::visit(const BinaryExprAST &node) {
     return;
   }
 
-  switch (node.op) {
+  switch (node.getOp()) {
   case '+':
     this->lastValue = this->llvmBuilder->CreateFAdd(l, r, "addtmp");
     break;
@@ -102,7 +102,7 @@ void CodeGenerator::visit(const BinaryExprAST &node) {
 }
 
 void CodeGenerator::visit(const FunctionCallExprAST &visitor) {
-  llvm::Function *calleeF = this->llvmModule->getFunction(visitor.caller);
+  llvm::Function *calleeF = this->llvmModule->getFunction(visitor.getCaller());
 
   if (!calleeF) {
     this->lastValue = logError("Unknown function referenced");
@@ -131,17 +131,18 @@ void CodeGenerator::visit(const FunctionCallExprAST &visitor) {
 
 void CodeGenerator::visit(const FunctionPrototypeAST &node) {
   std::vector<llvm::Type *> doubles(
-      node.args.size(), llvm::Type::getDoubleTy(*this->llvmContext));
+      node.getArgs().size(), llvm::Type::getDoubleTy(*this->llvmContext));
 
   llvm::FunctionType *FT = llvm::FunctionType::get(
       llvm::Type::getDoubleTy(*this->llvmContext), doubles, false);
 
-  llvm::Function *F = llvm::Function::Create(
-      FT, llvm::Function::ExternalLinkage, node.name, this->llvmModule.get());
+  llvm::Function *F =
+      llvm::Function::Create(FT, llvm::Function::ExternalLinkage,
+                             node.getName(), this->llvmModule.get());
 
   unsigned idx = 0;
   for (auto &Arg : F->args())
-    Arg.setName(node.args[idx++]);
+    Arg.setName(node.getArgs()[idx++]);
 
   this->lastFunctionValue = F;
 }

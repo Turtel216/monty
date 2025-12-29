@@ -53,38 +53,47 @@ public:
 };
 
 class BinaryExprAST : public ExprAST {
-public:
+private:
   char op;
+
+public:
   std::unique_ptr<ExprAST> Lhs, Rhs;
   BinaryExprAST(char _op, std::unique_ptr<ExprAST> _Lhs,
                 std::unique_ptr<ExprAST> _Rhs) noexcept
       : op(_op), Lhs(std::move(_Lhs)), Rhs(std::move(_Rhs)) {}
 
+  char getOp() const noexcept { return this->op; }
   void accept(ASTVisitor &visitor) const noexcept override;
 };
 
 class FunctionCallExprAST : public ExprAST {
-public:
+private:
   std::string caller;
+
+public:
   std::vector<std::unique_ptr<ExprAST>> args;
+
   FunctionCallExprAST(const std::string &_caller,
                       std::vector<std::unique_ptr<ExprAST>> _args) noexcept
       : caller(_caller), args(std::move(_args)) {};
 
+  std::string getCaller() const noexcept { return this->caller; }
   void accept(ASTVisitor &visitor) const noexcept override;
 };
 
 // Represents a functions declaration
 class FunctionPrototypeAST {
-public:
+private:
   std::string name;
   std::vector<std::string> args;
 
+public:
   FunctionPrototypeAST(const std::string &_name,
                        std::vector<std::string> _args) noexcept
       : name(_name), args(std::move(_args)) {};
 
   std::string getName() const noexcept { return name; }
+  std::vector<std::string> getArgs() const noexcept { return args; }
 
   void accept(ASTVisitor &visitor) const noexcept;
 };
