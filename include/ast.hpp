@@ -100,14 +100,32 @@ class FunctionPrototypeAST {
 private:
   std::string name;
   std::vector<std::string> args;
+  unsigned precedence;
+  bool isOperator;
 
 public:
-  FunctionPrototypeAST(const std::string &_name,
-                       std::vector<std::string> _args) noexcept
-      : name(_name), args(std::move(_args)) {};
+  FunctionPrototypeAST(const std::string &_name, std::vector<std::string> _args,
+                       bool _isOperator = false,
+                       unsigned _precedence = 0) noexcept
+      : name(_name), args(std::move(_args)), isOperator(_isOperator),
+        precedence(_precedence) {};
 
   std::string getName() const noexcept { return name; }
   std::vector<std::string> getArgs() const noexcept { return args; }
+
+  bool isUnaryOp() const noexcept {
+    return this->isOperator && this->args.size() == 1;
+  }
+  bool isBinaryOp() const noexcept {
+    return this->isOperator && this->args.size() == 2;
+  }
+
+  char getOperatorName() const {
+    assert(isUnaryOp() || isBinaryOp());
+    return this->name[this->name.size() - 1];
+  }
+
+  unsigned getBinaryPrecedence() const { return this->precedence; }
 
   void accept(ASTVisitor &visitor) const noexcept;
 };

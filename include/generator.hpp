@@ -29,6 +29,8 @@ private:
   std::unique_ptr<llvm::PassInstrumentationCallbacks> pic;
   std::unique_ptr<llvm::StandardInstrumentations> si;
 
+  std::map<char, int> &binopPrecedence;
+
   llvm::Function *getFunction(std::string name) noexcept;
 
 public:
@@ -46,7 +48,12 @@ public:
   // LLVM util for exiting on code generation error
   llvm::ExitOnError exitOnErr;
 
-  CodeGenerator() noexcept;
+  CodeGenerator(std::map<char, int> &_binopPrecedence) noexcept
+      : binopPrecedence(_binopPrecedence) {
+    // Create JIT Compiler
+    this->jit = this->exitOnErr(llvm::orc::KaleidoscopeJIT::Create());
+    initializeModuleAndPassManager();
+  }
 
   // TODO: Update error handling
   llvm::Value *logError(const char *str) const noexcept;

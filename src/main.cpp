@@ -9,8 +9,15 @@ int main(int argc, char *argv[]) {
   llvm::InitializeNativeTargetAsmPrinter();
   llvm::InitializeNativeTargetAsmParser();
 
-  monty::Parser parser;
-  monty::CodeGenerator generator;
+  // Needs to be accesed by both the generator and the parser
+  std::map<char, int> binopPrecedence;
+  binopPrecedence['<'] = 10;
+  binopPrecedence['+'] = 20;
+  binopPrecedence['-'] = 20;
+  binopPrecedence['*'] = 40;
+
+  monty::Parser parser{binopPrecedence};
+  monty::CodeGenerator generator{binopPrecedence};
   fprintf(stderr, "ready> ");
   parser.getNextToken();
 

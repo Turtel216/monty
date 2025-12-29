@@ -47,11 +47,6 @@ void CodeGenerator::initializeModuleAndPassManager() noexcept {
   pb.registerFunctionAnalyses(*fam);
   pb.crossRegisterProxies(*this->lam, *this->fam, *this->cgam, *this->mam);
 }
-CodeGenerator::CodeGenerator() noexcept {
-  // Create JIT Compiler
-  this->jit = this->exitOnErr(llvm::orc::KaleidoscopeJIT::Create());
-  initializeModuleAndPassManager();
-}
 
 void CodeGenerator::visit(const NumberExprAST &node) {
   this->lastValue =
@@ -83,23 +78,28 @@ void CodeGenerator::visit(const BinaryExprAST &node) {
   switch (node.getOp()) {
   case '+':
     this->lastValue = this->llvmBuilder->CreateFAdd(l, r, "addtmp");
-    break;
+    return;
   case '-':
     this->lastValue = this->llvmBuilder->CreateFSub(l, r, "subtmp");
-    break;
+    return;
   case '*':
     this->lastValue = this->llvmBuilder->CreateFMul(l, r, "multmp");
-    break;
+    return;
   case '<':
     l = this->llvmBuilder->CreateFCmpULT(l, r, "cmptmp");
     // Convert bool 0/1 to double 0.0 or 1.0
     this->lastValue = this->llvmBuilder->CreateUIToFP(
         l, llvm::Type::getDoubleTy(*this->llvmContext), "booltmp");
-    break;
+    return;
   default:
-    this->lastValue = logError("invalid binary operator");
     break;
   }
+
+  llvm::Function *F = getFunction(std::string("binary") + node.getOp());
+  assert(F && "binary operator not found!");
+
+  llvm::Value *Ops[2] = {l, r};
+  this->lastValue = this->llvmBuilder->CreateCall(F, Ops, "binop");
 }
 
 void CodeGenerator::visit(const IfExprAST &node) {
@@ -228,6 +228,10 @@ void CodeGenerator::visit(FunctionAST &node) {
     lastFunctionValue = nullptr;
     return;
   }
+
+  // If this is an operator, install it.
+  if (P.isBinaryOp())
+    binopPrecedence[P.getOperatorName()] = P.getBinaryPrecedence();
 
   // Create a new basic block to start insertion into.
   llvm::BasicBlock *BB =

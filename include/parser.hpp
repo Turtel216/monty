@@ -25,13 +25,8 @@ enum Token {
 
 class Parser {
 public:
-  Parser() noexcept : panicing(false) {
-    // Initialize standard binary operators.
-    binopPrecedence['<'] = 10;
-    binopPrecedence['+'] = 20;
-    binopPrecedence['-'] = 20;
-    binopPrecedence['*'] = 40;
-  }
+  Parser(std::map<char, int> &_binopPrecedence) noexcept
+      : panicing(false), binopPrecedence(_binopPrecedence) {}
 
   int getNextToken() noexcept;
   int getCurrentToken() const noexcept { return this->curToken; }
@@ -45,7 +40,7 @@ private:
   char curToken;
   std::string identifierStr;
   double numVal;
-  static inline std::map<char, int> binopPrecedence;
+  std::map<char, int> &binopPrecedence;
 
   // TODO add better compiler error handling
   std::unique_ptr<ExprAST> logError(const char *Str) const noexcept;
