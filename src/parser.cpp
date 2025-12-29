@@ -91,7 +91,7 @@ std::unique_ptr<ExprAST> Parser::parseUnary() noexcept {
   return nullptr;
 }
 
-std::unique_ptr<ExprAST> Parser::ParseIfExpr() noexcept {
+std::unique_ptr<ExprAST> Parser::parseIfExpr() noexcept {
   getNextToken(); // eat the if.
 
   // condition.
@@ -120,6 +120,52 @@ std::unique_ptr<ExprAST> Parser::ParseIfExpr() noexcept {
                                      std::move(otherwise));
 }
 
+std::unique_ptr<ExprAST> Parser::parseLetExpr() noexcept {
+  getNextToken(); // eat the let
+
+  std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> varNames;
+
+  // At least one variable name is required.
+  if (this->curToken != token_identifier)
+    return logError("expected identifier after let");
+
+  while (true) {
+    std::string name = this->identifierStr;
+    getNextToken(); // eat identifier.
+
+    // Read the optional initializer.
+    std::unique_ptr<ExprAST> init;
+    if (this->curToken == '=') {
+      getNextToken(); // eat the '='.
+
+      init = parseExpression();
+      if (!init)
+        return nullptr;
+    }
+
+    varNames.push_back(std::make_pair(name, std::move(init)));
+
+    // End of let list, exit loop.
+    if (this->curToken != ',')
+      break;
+    getNextToken(); // eat the ','.
+
+    if (this->curToken != token_identifier)
+      return logError("expected identifier list after let");
+  }
+
+  // At this point, we have to have 'in'.
+  if (this->curToken != token_in)
+    return logError("expected 'in' keyword after 'let'");
+  getNextToken(); // eat 'in'.
+
+  auto body = parseExpression();
+  if (!body)
+    return nullptr;
+
+  return std::make_unique<LetExprAST>(std::move(varNames), std::move(body));
+}
+
 std::unique_ptr<ExprAST> Parser::parsePrimery() noexcept {
   switch (curToken) {
   case token_identifier:
@@ -129,7 +175,9 @@ std::unique_ptr<ExprAST> Parser::parsePrimery() noexcept {
   case '(':
     return parseParenExpr();
   case token_if:
-    return ParseIfExpr();
+    return parseIfExpr();
+  case token_let:
+    return parseLetExpr();
   default:
     return logError("unknown token when expecting an expression");
   }
@@ -280,6 +328,10 @@ int Parser::getToken() noexcept {
       return token_binary;
     if (identifierStr == "unary")
       return token_unary;
+    if (identifierStr == "let")
+      return token_let;
+    if (identifierStr == "in")
+      return token_in;
 
     return token_identifier;
   }

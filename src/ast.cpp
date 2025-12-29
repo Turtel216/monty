@@ -26,6 +26,10 @@ void IfExprAST::accept(ASTVisitor &visitor) const noexcept {
   visitor.visit(*this);
 }
 
+void LetExprAST::accept(ASTVisitor &visitor) const noexcept {
+  visitor.visit(*this);
+}
+
 void FunctionCallExprAST::accept(ASTVisitor &visitor) const noexcept {
   visitor.visit(*this);
 }

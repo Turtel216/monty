@@ -5,6 +5,7 @@
 #include <llvm/Analysis/CGSCCPassManager.h>
 #include <llvm/Analysis/LoopAnalysisManager.h>
 #include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/PassInstrumentation.h>
 #include <llvm/IR/PassManager.h>
@@ -32,6 +33,8 @@ private:
   std::map<char, int> &binopPrecedence;
 
   llvm::Function *getFunction(std::string name) noexcept;
+  llvm::AllocaInst *createEntryBlockAlloca(llvm::Function *function,
+                                           llvm::StringRef varName);
 
 public:
   // LLVM builder utils
@@ -39,7 +42,7 @@ public:
   std::unique_ptr<llvm::IRBuilder<>> llvmBuilder;
   std::unique_ptr<llvm::Module> llvmModule;
   // Symbol table
-  std::map<std::string, llvm::Value *> namedValues;
+  std::map<std::string, llvm::AllocaInst *> namedValues;
   std::map<std::string, std::unique_ptr<FunctionPrototypeAST>>
       functionPrototypes;
   // JIT Compilation runtime
@@ -71,6 +74,7 @@ public:
   void visit(const BinaryExprAST &node) override;
   void visit(const UnaryExprAST &node) override;
   void visit(const IfExprAST &node) override;
+  void visit(const LetExprAST &node) override;
   void visit(const FunctionCallExprAST &node) override;
   void visit(const FunctionPrototypeAST &node) override;
   void visit(FunctionAST &node) override;

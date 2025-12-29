@@ -13,6 +13,7 @@ class VariableExprAST;
 class BinaryExprAST;
 class UnaryExprAST;
 class IfExprAST;
+class LetExprAST;
 class FunctionCallExprAST;
 class FunctionPrototypeAST;
 class FunctionAST;
@@ -26,6 +27,7 @@ public:
   virtual void visit(const BinaryExprAST &node) = 0;
   virtual void visit(const UnaryExprAST &node) = 0;
   virtual void visit(const IfExprAST &node) = 0;
+  virtual void visit(const LetExprAST &node) = 0;
   virtual void visit(const FunctionCallExprAST &node) = 0;
   virtual void visit(const FunctionPrototypeAST &node) = 0;
   virtual void visit(FunctionAST &node) = 0;
@@ -54,6 +56,18 @@ public:
 
   void accept(ASTVisitor &visitor) const noexcept override;
   std::string getName() const noexcept { return this->name; }
+};
+
+class LetExprAST : public ExprAST {
+public:
+  std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> varNames;
+  std::unique_ptr<ExprAST> body;
+  LetExprAST(
+      std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> _varNames,
+      std::unique_ptr<ExprAST> _body)
+      : varNames(std::move(_varNames)), body(std::move(_body)) {}
+
+  void accept(ASTVisitor &visitor) const noexcept override;
 };
 
 class BinaryExprAST : public ExprAST {

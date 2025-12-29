@@ -1,5 +1,6 @@
 #include "../include/generator.hpp"
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Passes/PassBuilder.h>
@@ -7,8 +8,19 @@
 #include <llvm/Transforms/Scalar/GVN.h>
 #include <llvm/Transforms/Scalar/Reassociate.h>
 #include <llvm/Transforms/Scalar/SimplifyCFG.h>
+#include <llvm/Transforms/Utils/Mem2Reg.h>
 #include <memory>
 namespace monty {
+
+llvm::AllocaInst *
+CodeGenerator::createEntryBlockAlloca(llvm::Function *function,
+                                      llvm::StringRef varName) {
+  llvm::IRBuilder<> TmpB(&function->getEntryBlock(),
+                         function->getEntryBlock().begin());
+  return TmpB.CreateAlloca(llvm::Type::getDoubleTy(*this->llvmContext), nullptr,
+                           varName);
+}
+
 void CodeGenerator::initializeModuleAndPassManager() noexcept {
   // Create context and module
   this->llvmContext = std::make_unique<llvm::LLVMContext>();
@@ -40,6 +52,10 @@ void CodeGenerator::initializeModuleAndPassManager() noexcept {
   this->fpm->addPass(llvm::GVNPass());
   // Simplify the control flow graph (deleting unreachable blocks, etc).
   this->fpm->addPass(llvm::SimplifyCFGPass());
+  // Promote allocas to registers.
+  this->fpm->addPass(llvm::PromotePass());
+  // Reassociate expressions.
+  this->fpm->addPass(llvm::ReassociatePass());
 
   // Register analysis passes used in these transform passes.
   llvm::PassBuilder pb;
@@ -54,52 +70,85 @@ void CodeGenerator::visit(const NumberExprAST &node) {
 }
 
 void CodeGenerator::visit(const VariableExprAST &node) {
-  llvm::Value *v = namedValues[node.getName()];
+  llvm::AllocaInst *v = namedValues[node.getName()];
 
   if (!v) {
     this->lastValue = logError("Unkown variable name");
     return;
   }
 
-  this->lastValue = v;
+  this->lastValue = this->llvmBuilder->CreateLoad(v->getAllocatedType(), v,
+                                                  node.getName().c_str());
 }
 
 void CodeGenerator::visit(const BinaryExprAST &node) {
-  node.Lhs->accept(*this);
-  llvm::Value *l = this->lastValue;
-  node.Rhs->accept(*this);
-  llvm::Value *r = this->lastValue;
+  // Special case '=', don't emit the LHS as an expression.
+  if (node.getOp() == '=') {
+    // Assignment requires the LHS to be an identifier.
+    // This assume we're building without RTTI because LLVM builds that way by
+    // default.  If you build LLVM with RTTI this can be changed to a
+    // dynamic_cast for automatic error checking.
+    VariableExprAST *LHSE = static_cast<VariableExprAST *>(node.Lhs.get());
+    if (!LHSE) {
+      this->lastValue = logError("destination of '=' must be a variable");
+      return;
+    }
+    // Codegen the RHS.
+    node.Rhs->accept(*this);
+    llvm::Value *val = this->lastValue;
+    if (!val) {
+      this->lastValue = nullptr;
+      return;
+    }
 
-  if (!l || !r) {
+    // Look up the name.
+    llvm::Value *variable = this->namedValues[LHSE->getName()];
+    if (!variable) {
+      this->lastValue = logError("Unknown variable name");
+      return;
+    }
+
+    this->llvmBuilder->CreateStore(val, variable);
+    this->lastValue = val;
+    return;
+  }
+
+  node.Lhs->accept(*this);
+  llvm::Value *L = this->lastValue;
+  node.Rhs->accept(*this);
+  llvm::Value *R = this->lastValue;
+  if (!L || !R) {
     this->lastValue = nullptr;
     return;
   }
 
   switch (node.getOp()) {
   case '+':
-    this->lastValue = this->llvmBuilder->CreateFAdd(l, r, "addtmp");
+    this->lastValue = this->llvmBuilder->CreateFAdd(L, R, "addtmp");
     return;
   case '-':
-    this->lastValue = this->llvmBuilder->CreateFSub(l, r, "subtmp");
+    this->lastValue = this->llvmBuilder->CreateFSub(L, R, "subtmp");
     return;
   case '*':
-    this->lastValue = this->llvmBuilder->CreateFMul(l, r, "multmp");
+    this->lastValue = this->llvmBuilder->CreateFMul(L, R, "multmp");
     return;
   case '<':
-    l = this->llvmBuilder->CreateFCmpULT(l, r, "cmptmp");
+    L = this->llvmBuilder->CreateFCmpULT(L, R, "cmptmp");
     // Convert bool 0/1 to double 0.0 or 1.0
     this->lastValue = this->llvmBuilder->CreateUIToFP(
-        l, llvm::Type::getDoubleTy(*this->llvmContext), "booltmp");
+        L, llvm::Type::getDoubleTy(*this->llvmContext), "booltmp");
     return;
   default:
     break;
   }
 
+  // If it wasn't a builtin binary operator, it must be a user defined one. Emit
+  // a call to it.
   llvm::Function *F = getFunction(std::string("binary") + node.getOp());
   assert(F && "binary operator not found!");
 
-  llvm::Value *Ops[2] = {l, r};
-  this->lastValue = this->llvmBuilder->CreateCall(F, Ops, "binop");
+  llvm::Value *ops[] = {L, R};
+  this->lastValue = this->llvmBuilder->CreateCall(F, ops, "binop");
 }
 
 void CodeGenerator::visit(const UnaryExprAST &node) {
@@ -189,6 +238,60 @@ void CodeGenerator::visit(const IfExprAST &node) {
   lastValue = pn;
 }
 
+void CodeGenerator::visit(const LetExprAST &node) {
+  std::vector<llvm::AllocaInst *> oldBindings;
+
+  llvm::Function *function = this->llvmBuilder->GetInsertBlock()->getParent();
+
+  // Register all variables and emit their initializer.
+  for (unsigned i = 0, e = node.varNames.size(); i != e; ++i) {
+    const std::string &varName = node.varNames[i].first;
+    ExprAST *init = node.varNames[i].second.get();
+
+    // Emit the initializer before adding the variable to scope, this prevents
+    // the initializer from referencing the variable itself, and permits stuff
+    // like this:
+    //  var a = 1 in
+    //    var a = a in ...   # refers to outer 'a'.
+    llvm::Value *initVal;
+    if (init) {
+      init->accept(*this);
+      initVal = this->lastValue;
+      if (!initVal) {
+        lastValue = nullptr;
+        return;
+      }
+    } else { // If not specified, use 0.0.
+      initVal = llvm::ConstantFP::get(*this->llvmContext, llvm::APFloat(0.0));
+    }
+
+    llvm::AllocaInst *alloca = createEntryBlockAlloca(function, varName);
+    this->llvmBuilder->CreateStore(initVal, alloca);
+
+    // Remember the old variable binding so that we can restore the binding when
+    // we unrecurse.
+    oldBindings.push_back(this->namedValues[varName]);
+
+    // Remember this binding.
+    this->namedValues[varName] = alloca;
+  }
+
+  // Codegen the body, now that all vars are in scope.
+  node.body->accept(*this);
+  llvm::Value *bodyVal = this->lastValue;
+  if (!bodyVal) {
+    lastValue = nullptr;
+    return;
+  }
+
+  // Pop all our variables from scope.
+  for (unsigned i = 0, e = node.varNames.size(); i != e; ++i)
+    this->namedValues[node.varNames[i].first] = oldBindings[i];
+
+  // Return the body computation.
+  lastValue = bodyVal;
+}
+
 void CodeGenerator::visit(const FunctionCallExprAST &node) {
   llvm::Function *calleeF = getFunction(node.getCaller());
 
@@ -257,8 +360,13 @@ void CodeGenerator::visit(FunctionAST &node) {
 
   // Record the function arguments in the NamedValues map.
   this->namedValues.clear();
-  for (auto &Arg : function->args())
-    this->namedValues[std::string(Arg.getName())] = &Arg;
+  for (auto &arg : function->args()) {
+    llvm::AllocaInst *alloca = createEntryBlockAlloca(function, arg.getName());
+
+    this->llvmBuilder->CreateStore(&arg, alloca);
+
+    this->namedValues[std::string(arg.getName())] = alloca;
+  }
 
   node.body->accept(*this);
   if (llvm::Value *retVal = this->lastValue) {

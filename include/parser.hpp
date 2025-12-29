@@ -21,6 +21,9 @@ enum Token {
 
   token_binary = -9,
   token_unary = -12,
+
+  token_let = -13,
+  token_in = -14,
 };
 
 class Parser {
@@ -55,7 +58,8 @@ private:
   std::unique_ptr<ExprAST> parseUnary() noexcept;
   std::unique_ptr<ExprAST> parseBinOpRhs(int exprPrec,
                                          std::unique_ptr<ExprAST> Lhs) noexcept;
-  std::unique_ptr<ExprAST> ParseIfExpr() noexcept;
+  std::unique_ptr<ExprAST> parseIfExpr() noexcept;
+  std::unique_ptr<ExprAST> parseLetExpr() noexcept;
   std::unique_ptr<ExprAST> parseNumberExpr() noexcept;
   std::unique_ptr<ExprAST> parseParenExpr() noexcept;
   std::unique_ptr<FunctionPrototypeAST> parsePrototype() noexcept;

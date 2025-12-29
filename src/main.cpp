@@ -22,6 +22,7 @@ int main(int argc, char *argv[]) {
 
     // Needs to be accesed by both the generator and the parser
     std::map<char, int> binopPrecedence;
+    binopPrecedence['='] = 2;
     binopPrecedence['<'] = 10;
     binopPrecedence['+'] = 20;
     binopPrecedence['-'] = 20;
