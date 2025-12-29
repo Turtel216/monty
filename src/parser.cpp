@@ -183,7 +183,7 @@ int Parser::getToken() noexcept {
     while (isalnum((lastChar = getchar())))
       identifierStr += lastChar;
 
-    if (identifierStr == "def")
+    if (identifierStr == "fn")
       return token_def;
     if (identifierStr == "extern")
       return token_extern;
