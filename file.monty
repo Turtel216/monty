@@ -1,2 +1,6 @@
-fn entry() 2 + 2;
+using printd(x);
+
+fn average(x y) (x + y) * 0.5;
+
+fn entry() printd(average(10, 5));
   
