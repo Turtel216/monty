@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ast.hpp"
-#include <cstdlib>
 #include <llvm/Analysis/CGSCCPassManager.h>
 #include <llvm/Analysis/LoopAnalysisManager.h>
 #include <llvm/IR/IRBuilder.h>
@@ -44,8 +43,6 @@ private:
   llvm::AllocaInst *createEntryBlockAlloca(llvm::Function *function,
                                            llvm::StringRef varName);
 
-  void initializeModuleAndPassManager() noexcept;
-
 public:
   // LLVM builder utils
   std::unique_ptr<llvm::LLVMContext> llvmContext;
@@ -61,38 +58,7 @@ public:
   // LLVM util for exiting on code generation error
   llvm::ExitOnError exitOnErr;
 
-  CodeGenerator(std::map<char, int> &_binopPrecedence) noexcept
-      : binopPrecedence(_binopPrecedence) {
-    initializeModuleAndPassManager();
-    llvm::InitializeAllTargetInfos();
-    llvm::InitializeAllTargets();
-    llvm::InitializeAllTargetMCs();
-    llvm::InitializeAllAsmParsers();
-    llvm::InitializeAllAsmPrinters();
-
-    // Create the Triple object first
-    llvm::Triple _targetTriple(llvm::sys::getDefaultTargetTriple());
-    this->targetTriplet = std::move(_targetTriple);
-
-    this->llvmModule->setTargetTriple(this->targetTriplet);
-
-    std::string registryError;
-    auto target =
-        llvm::TargetRegistry::lookupTarget(this->targetTriplet, registryError);
-    if (!target) {
-      llvm::errs() << registryError;
-      std::exit(1);
-    }
-
-    auto cpu = "generic";
-    auto features = "";
-
-    llvm::TargetOptions opt;
-    this->targetMachine = target->createTargetMachine(
-        this->targetTriplet, cpu, features, opt, llvm::Reloc::PIC_);
-
-    this->llvmModule->setDataLayout(this->targetMachine->createDataLayout());
-  }
+  CodeGenerator(std::map<char, int> &_binopPrecedence) noexcept;
 
   // TODO: Update error handling
   llvm::Value *logError(const char *str) const noexcept;

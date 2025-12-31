@@ -15,6 +15,43 @@
 #include <memory>
 namespace monty {
 
+CodeGenerator::CodeGenerator(std::map<char, int> &_binopPrecedence) noexcept
+    : binopPrecedence(_binopPrecedence) {
+  this->llvmContext = std::make_unique<llvm::LLVMContext>();
+  this->llvmModule =
+      std::make_unique<llvm::Module>("Monty", *this->llvmContext);
+
+  this->llvmBuilder = std::make_unique<llvm::IRBuilder<>>(*this->llvmContext);
+  llvm::InitializeAllTargetInfos();
+  llvm::InitializeAllTargets();
+  llvm::InitializeAllTargetMCs();
+  llvm::InitializeAllAsmParsers();
+  llvm::InitializeAllAsmPrinters();
+
+  // Create the Triple object first
+  llvm::Triple _targetTriple(llvm::sys::getDefaultTargetTriple());
+  this->targetTriplet = std::move(_targetTriple);
+
+  this->llvmModule->setTargetTriple(this->targetTriplet);
+
+  std::string registryError;
+  auto target =
+      llvm::TargetRegistry::lookupTarget(this->targetTriplet, registryError);
+  if (!target) {
+    llvm::errs() << registryError;
+    std::exit(1);
+  }
+
+  auto cpu = "generic";
+  auto features = "";
+
+  llvm::TargetOptions opt;
+  this->targetMachine = target->createTargetMachine(
+      this->targetTriplet, cpu, features, opt, llvm::Reloc::PIC_);
+
+  this->llvmModule->setDataLayout(this->targetMachine->createDataLayout());
+}
+
 llvm::AllocaInst *
 CodeGenerator::createEntryBlockAlloca(llvm::Function *function,
                                       llvm::StringRef varName) {
@@ -24,54 +61,49 @@ CodeGenerator::createEntryBlockAlloca(llvm::Function *function,
                            varName);
 }
 
+/**
 void CodeGenerator::initializeModuleAndPassManager() noexcept {
-  // Create context and module
-  this->llvmContext = std::make_unique<llvm::LLVMContext>();
-  this->llvmModule =
-      std::make_unique<llvm::Module>("Monty", *this->llvmContext);
+// Create context and module
 
-  this->llvmBuilder = std::make_unique<llvm::IRBuilder<>>(*this->llvmContext);
+this->llvmModule->setDataLayout(this->targetMachine->createDataLayout());
+this->llvmModule->setTargetTriple(this->targetTriplet);
 
-  /**
-  this->llvmModule->setDataLayout(this->targetMachine->createDataLayout());
-  this->llvmModule->setTargetTriple(this->targetTriplet);
+// Create IRBuilder
+this->llvmBuilder = std::make_unique<llvm::IRBuilder<>>(*this->llvmContext);
 
-  // Create IRBuilder
-  this->llvmBuilder = std::make_unique<llvm::IRBuilder<>>(*this->llvmContext);
+// Create pass and analysis managers
+this->fpm = std::make_unique<llvm::FunctionPassManager>();
+this->lam = std::make_unique<llvm::LoopAnalysisManager>();
+this->fam = std::make_unique<llvm::FunctionAnalysisManager>();
+this->cgam = std::make_unique<llvm::CGSCCAnalysisManager>();
+this->mam = std::make_unique<llvm::ModuleAnalysisManager>();
+this->pic = std::make_unique<llvm::PassInstrumentationCallbacks>();
+this->si =
+    std::make_unique<llvm::StandardInstrumentations>(*this->llvmContext,
+                                                     true);
+this->si->registerCallbacks(*this->pic, this->mam.get());
 
-  // Create pass and analysis managers
-  this->fpm = std::make_unique<llvm::FunctionPassManager>();
-  this->lam = std::make_unique<llvm::LoopAnalysisManager>();
-  this->fam = std::make_unique<llvm::FunctionAnalysisManager>();
-  this->cgam = std::make_unique<llvm::CGSCCAnalysisManager>();
-  this->mam = std::make_unique<llvm::ModuleAnalysisManager>();
-  this->pic = std::make_unique<llvm::PassInstrumentationCallbacks>();
-  this->si =
-      std::make_unique<llvm::StandardInstrumentations>(*this->llvmContext,
-                                                       true);
-  this->si->registerCallbacks(*this->pic, this->mam.get());
+// Add transform passes.
+// Do simple "peephole" optimizations and bit-twiddling optzns.
+this->fpm->addPass(llvm::InstCombinePass());
+// Reassociate expressions.
+this->fpm->addPass(llvm::ReassociatePass());
+// Eliminate Common SubExpressions.
+this->fpm->addPass(llvm::GVNPass());
+// Simplify the control flow graph (deleting unreachable blocks, etc).
+this->fpm->addPass(llvm::SimplifyCFGPass());
+// Promote allocas to registers.
+this->fpm->addPass(llvm::PromotePass());
+// Reassociate expressions.
+this->fpm->addPass(llvm::ReassociatePass());
 
-  // Add transform passes.
-  // Do simple "peephole" optimizations and bit-twiddling optzns.
-  this->fpm->addPass(llvm::InstCombinePass());
-  // Reassociate expressions.
-  this->fpm->addPass(llvm::ReassociatePass());
-  // Eliminate Common SubExpressions.
-  this->fpm->addPass(llvm::GVNPass());
-  // Simplify the control flow graph (deleting unreachable blocks, etc).
-  this->fpm->addPass(llvm::SimplifyCFGPass());
-  // Promote allocas to registers.
-  this->fpm->addPass(llvm::PromotePass());
-  // Reassociate expressions.
-  this->fpm->addPass(llvm::ReassociatePass());
-
-  // Register analysis passes used in these transform passes.
-  llvm::PassBuilder pb;
-  pb.registerModuleAnalyses(*mam);
-  pb.registerFunctionAnalyses(*fam);
-  pb.crossRegisterProxies(*this->lam, *this->fam, *this->cgam, *this->mam);
-  */
+// Register analysis passes used in these transform passes.
+llvm::PassBuilder pb;
+pb.registerModuleAnalyses(*mam);
+pb.registerFunctionAnalyses(*fam);
+pb.crossRegisterProxies(*this->lam, *this->fam, *this->cgam, *this->mam);
 }
+*/
 
 void CodeGenerator::visit(const NumberExprAST &node) {
   this->lastValue =

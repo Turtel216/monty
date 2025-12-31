@@ -32,7 +32,6 @@ int main(int argc, char *argv[]) {
     binopPrecedence['*'] = 40;
 
     monty::CodeGenerator generator{binopPrecedence};
-    std::cout << "Here!\n";
 
     // Old Jit compiler code
     // llvm::InitializeNativeTarget();
