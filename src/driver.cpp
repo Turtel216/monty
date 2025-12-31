@@ -1,10 +1,15 @@
 #include "../include/driver.hpp"
+#include <cstdlib>
 
 namespace monty {
 
+void linkToRuntime(const std::string &output) {
+  std::string command = "clang++ cpp-runtime/entry.cpp output.o -o " + output;
+  std::system(command.c_str());
+}
+
 void process(CodeGenerator &generator, Parser &parser) noexcept {
   while (true) {
-    fprintf(stderr, "ready> ");
     switch (parser.getCurrentToken()) {
     case token_eof:
       return;

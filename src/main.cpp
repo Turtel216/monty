@@ -3,7 +3,9 @@
 #include "../include/generator.hpp"
 #include "../include/parser.hpp"
 #include "llvm/IR/LegacyPassManager.h"
+#include <fstream>
 #include <iostream>
+#include <istream>
 #include <llvm/MC/TargetRegistry.h>
 #include <llvm/Support/CodeGen.h>
 #include <llvm/Support/FileSystem.h>
@@ -23,6 +25,13 @@ int main(int argc, char *argv[]) {
       return 0;
     }
 
+    std::filebuf fb;
+    if (!fb.open(cli.source_file, std::ios::in)) {
+      llvm::errs() << "Error could not open file" << cli.source_file << '\n';
+    }
+
+    std::istream sourceFile(&fb);
+
     // Needs to be accesed by both the generator and the parser
     std::map<char, int> binopPrecedence;
     binopPrecedence['='] = 2;
@@ -38,8 +47,7 @@ int main(int argc, char *argv[]) {
     // llvm::InitializeNativeTargetAsmPrinter();
     // llvm::InitializeNativeTargetAsmParser();
 
-    monty::Parser parser{binopPrecedence};
-    fprintf(stderr, "ready> ");
+    monty::Parser parser{binopPrecedence, sourceFile};
     parser.getNextToken();
 
     monty::process(generator, parser);
@@ -67,6 +75,9 @@ int main(int argc, char *argv[]) {
     // generator.llvmModule->print(llvm::errs(), nullptr);
 
     llvm::outs() << "Wrote " << Filename << "\n";
+    fb.close();
+
+    monty::linkToRuntime(cli.output_file);
     return 0;
   } catch (const std::exception &e) {
     std::cerr << e.what() << "\n";

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../include/ast.hpp"
+#include <istream>
 #include <map>
 #include <memory>
 
@@ -28,8 +29,10 @@ enum Token {
 
 class Parser {
 public:
-  Parser(std::map<char, int> &_binopPrecedence) noexcept
-      : panicing(false), binopPrecedence(_binopPrecedence) {}
+  Parser(std::map<char, int> &_binopPrecedence,
+         std::istream &_inputStream) noexcept
+      : panicing(false), binopPrecedence(_binopPrecedence),
+        inputStream(_inputStream) {}
 
   int getNextToken() noexcept;
   int getCurrentToken() const noexcept { return this->curToken; }
@@ -44,6 +47,7 @@ private:
   std::string identifierStr;
   double numVal;
   std::map<char, int> &binopPrecedence;
+  std::istream &inputStream;
 
   // TODO add better compiler error handling
   std::unique_ptr<ExprAST> logError(const char *Str) const noexcept;
@@ -51,6 +55,7 @@ private:
 
   logErrorP(const char *Str) const noexcept;
   int getToken() noexcept;
+  int getNextChar() noexcept { return this->inputStream.get(); }
 
   std::unique_ptr<ExprAST> parseExpression() noexcept;
   std::unique_ptr<ExprAST> parseIdentifierExpr() noexcept;

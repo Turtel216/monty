@@ -307,11 +307,11 @@ int Parser::getToken() noexcept {
 
   // Skip any whitespace.
   while (isspace(lastChar))
-    lastChar = getchar();
+    lastChar = getNextChar();
 
   if (isalpha(lastChar)) { // identifier: [a-zA-Z][a-zA-Z0-9]*
     identifierStr = lastChar;
-    while (isalnum((lastChar = getchar())))
+    while (isalnum((lastChar = getNextChar())))
       identifierStr += lastChar;
 
     if (identifierStr == "fn")
@@ -340,7 +340,7 @@ int Parser::getToken() noexcept {
     std::string numStr;
     do {
       numStr += lastChar;
-      lastChar = getchar();
+      lastChar = getNextChar();
     } while (isdigit(lastChar) || lastChar == '.');
 
     numVal = strtod(numStr.c_str(), nullptr);
@@ -350,7 +350,7 @@ int Parser::getToken() noexcept {
   if (lastChar == '#') {
     // Comment until end of line.
     do
-      lastChar = getchar();
+      lastChar = getNextChar();
     while (lastChar != EOF && lastChar != '\n' && lastChar != '\r');
 
     if (lastChar != EOF)
@@ -363,7 +363,7 @@ int Parser::getToken() noexcept {
 
   // Otherwise, just return the character as its ascii value.
   int ThisChar = lastChar;
-  lastChar = getchar();
+  lastChar = getNextChar();
   return ThisChar;
 }
 
