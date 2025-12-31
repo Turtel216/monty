@@ -78,6 +78,7 @@ int main(int argc, char *argv[]) {
     fb.close();
 
     monty::linkToRuntime(cli.output_file);
+    monty::cleanUp(Filename);
     return 0;
   } catch (const std::exception &e) {
     std::cerr << e.what() << "\n";

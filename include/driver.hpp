@@ -7,6 +7,7 @@ namespace monty {
 
 void process(CodeGenerator &generator, Parser &parser) noexcept;
 void linkToRuntime(const std::string &output);
+void cleanUp(const std::string &objectFile);
 
 void handleExtern(CodeGenerator &generator, Parser &parser) noexcept;
 void handleDefinition(CodeGenerator &generator, Parser &parser) noexcept;

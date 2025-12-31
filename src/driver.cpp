@@ -8,6 +8,11 @@ void linkToRuntime(const std::string &output) {
   std::system(command.c_str());
 }
 
+void cleanUp(const std::string &objectFile) {
+  std::string command = "rm " + objectFile;
+  std::system(command.c_str());
+}
+
 void process(CodeGenerator &generator, Parser &parser) noexcept {
   while (true) {
     switch (parser.getCurrentToken()) {
