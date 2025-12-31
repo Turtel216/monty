@@ -4,11 +4,14 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Passes/PassBuilder.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/TargetParser/Triple.h>
 #include <llvm/Transforms/InstCombine/InstCombine.h>
 #include <llvm/Transforms/Scalar/GVN.h>
 #include <llvm/Transforms/Scalar/Reassociate.h>
 #include <llvm/Transforms/Scalar/SimplifyCFG.h>
 #include <llvm/Transforms/Utils/Mem2Reg.h>
+
 #include <memory>
 namespace monty {
 
@@ -25,8 +28,13 @@ void CodeGenerator::initializeModuleAndPassManager() noexcept {
   // Create context and module
   this->llvmContext = std::make_unique<llvm::LLVMContext>();
   this->llvmModule =
-      std::make_unique<llvm::Module>("Monty JIT", *this->llvmContext);
-  this->llvmModule->setDataLayout(jit->getDataLayout());
+      std::make_unique<llvm::Module>("Monty", *this->llvmContext);
+
+  this->llvmBuilder = std::make_unique<llvm::IRBuilder<>>(*this->llvmContext);
+
+  /**
+  this->llvmModule->setDataLayout(this->targetMachine->createDataLayout());
+  this->llvmModule->setTargetTriple(this->targetTriplet);
 
   // Create IRBuilder
   this->llvmBuilder = std::make_unique<llvm::IRBuilder<>>(*this->llvmContext);
@@ -40,7 +48,7 @@ void CodeGenerator::initializeModuleAndPassManager() noexcept {
   this->pic = std::make_unique<llvm::PassInstrumentationCallbacks>();
   this->si =
       std::make_unique<llvm::StandardInstrumentations>(*this->llvmContext,
-                                                       /*DebugLogging*/ true);
+                                                       true);
   this->si->registerCallbacks(*this->pic, this->mam.get());
 
   // Add transform passes.
@@ -62,6 +70,7 @@ void CodeGenerator::initializeModuleAndPassManager() noexcept {
   pb.registerModuleAnalyses(*mam);
   pb.registerFunctionAnalyses(*fam);
   pb.crossRegisterProxies(*this->lam, *this->fam, *this->cgam, *this->mam);
+  */
 }
 
 void CodeGenerator::visit(const NumberExprAST &node) {
@@ -376,7 +385,7 @@ void CodeGenerator::visit(FunctionAST &node) {
     // Validate the generated code, checking for consistency.
     llvm::verifyFunction(*function);
 
-    this->fpm->run(*function, *this->fam);
+    // this->fpm->run(*function, *this->fam);
 
     this->lastFunctionValue = function;
     return;
