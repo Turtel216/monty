@@ -43,18 +43,18 @@ public:
   SourceLoc curLoc = {1, 0};
   Parser(Diagnostics &_diag, std::map<char, int> &_binopPrecedence,
          std::istream &_inputStream) noexcept
-      : diag(_diag), panicing(false), binopPrecedence(_binopPrecedence),
+      : diag(_diag), binopPrecedence(_binopPrecedence),
         inputStream(_inputStream) {}
 
   int getNextToken() noexcept;
   int getCurrentToken() const noexcept { return this->curToken; }
+  void synchronize() noexcept;
 
   std::unique_ptr<ast::FunctionAST> parseTopLevelExpr() noexcept;
   std::unique_ptr<ast::FunctionAST> parseDefinition() noexcept;
   std::unique_ptr<ast::FunctionPrototypeAST> parseExtern() noexcept;
 
 private:
-  bool panicing;
   char curToken;
   std::string identifierStr;
   double numVal;

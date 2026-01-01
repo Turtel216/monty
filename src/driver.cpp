@@ -46,8 +46,8 @@ void handleExtern(gen::CodeGenerator &generator, syn::Parser &parser) noexcept {
       generator.functionPrototypes[protoAST->getName()] = std::move(protoAST);
     }
   } else {
-    // Skip token for error recovery.
-    parser.getNextToken();
+    // Error encountered, synchronize for recovery
+    parser.synchronize();
   }
 }
 void handleDefinition(gen::CodeGenerator &generator,
@@ -61,8 +61,8 @@ void handleDefinition(gen::CodeGenerator &generator,
       fprintf(stderr, "\n");
     }
   } else {
-    // Skip token for error recovery.
-    parser.getNextToken();
+    // Error encountered, synchronize for recovery
+    parser.synchronize();
   }
 }
 void handleTopLevelExpression(gen::CodeGenerator &generator,
@@ -71,8 +71,8 @@ void handleTopLevelExpression(gen::CodeGenerator &generator,
   if (auto fnAST = parser.parseTopLevelExpr()) {
     generator.visit(*fnAST);
   } else {
-    // Skip token for error recovery.
-    parser.getNextToken();
+    // Error encountered, synchronize for recovery
+    parser.synchronize();
   }
 }
 } // namespace drv

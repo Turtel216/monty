@@ -181,8 +181,10 @@ std::unique_ptr<ast::ExprAST> Parser::parsePrimery() noexcept {
     return parseIfExpr();
   case token_let:
     return parseLetExpr();
+  case token_eof:
+    return nullptr;
   default:
-    return logError("unknown token when expecting an expression");
+    return logError("Unknown token when expecting an expression");
   }
 }
 
@@ -307,8 +309,6 @@ std::unique_ptr<ast::ExprAST> Parser::parseParenExpr() noexcept {
 int Parser::getNextToken() noexcept { return curToken = getToken(); }
 
 int Parser::getToken() noexcept {
-  static int lastChar = ' ';
-
   // Skip any whitespace.
   while (isspace(lastChar))
     lastChar = getNextChar();
@@ -395,6 +395,26 @@ int Parser::getNextChar() noexcept {
   }
 
   return c;
+}
+
+void Parser::synchronize() noexcept {
+  getNextToken(); // Advance to avoid getting stuck on the error token
+
+  while (curToken != token_eof) {
+    if (curToken == ';') {
+      getNextToken();
+      return;
+    }
+
+    // Check if at the start of a new declaration
+    switch (curToken) {
+    case token_def:
+    case token_extern:
+      return;
+    }
+
+    getNextToken();
+  }
 }
 
 } // namespace syn
