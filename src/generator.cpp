@@ -14,6 +14,7 @@
 
 #include <memory>
 namespace monty {
+namespace gen {
 
 CodeGenerator::CodeGenerator(std::map<char, int> &_binopPrecedence) noexcept
     : binopPrecedence(_binopPrecedence) {
@@ -105,12 +106,12 @@ pb.crossRegisterProxies(*this->lam, *this->fam, *this->cgam, *this->mam);
 }
 */
 
-void CodeGenerator::visit(const NumberExprAST &node) {
+void CodeGenerator::visit(const ast::NumberExprAST &node) {
   this->lastValue =
       llvm::ConstantFP::get(*llvmContext, llvm::APFloat(node.getVal()));
 }
 
-void CodeGenerator::visit(const VariableExprAST &node) {
+void CodeGenerator::visit(const ast::VariableExprAST &node) {
   llvm::AllocaInst *v = namedValues[node.getName()];
 
   if (!v) {
@@ -122,14 +123,15 @@ void CodeGenerator::visit(const VariableExprAST &node) {
                                                   node.getName().c_str());
 }
 
-void CodeGenerator::visit(const BinaryExprAST &node) {
+void CodeGenerator::visit(const ast::BinaryExprAST &node) {
   // Special case '=', don't emit the LHS as an expression.
   if (node.getOp() == '=') {
     // Assignment requires the LHS to be an identifier.
     // This assume we're building without RTTI because LLVM builds that way by
     // default.  If you build LLVM with RTTI this can be changed to a
     // dynamic_cast for automatic error checking.
-    VariableExprAST *LHSE = static_cast<VariableExprAST *>(node.Lhs.get());
+    ast::VariableExprAST *LHSE =
+        static_cast<ast::VariableExprAST *>(node.Lhs.get());
     if (!LHSE) {
       this->lastValue = logError("destination of '=' must be a variable");
       return;
@@ -192,7 +194,7 @@ void CodeGenerator::visit(const BinaryExprAST &node) {
   this->lastValue = this->llvmBuilder->CreateCall(F, ops, "binop");
 }
 
-void CodeGenerator::visit(const UnaryExprAST &node) {
+void CodeGenerator::visit(const ast::UnaryExprAST &node) {
   node.operand->accept(*this);
   llvm::Value *OperandV = lastValue;
   if (!OperandV) {
@@ -209,7 +211,7 @@ void CodeGenerator::visit(const UnaryExprAST &node) {
   lastValue = this->llvmBuilder->CreateCall(F, OperandV, "unop");
 }
 
-void CodeGenerator::visit(const IfExprAST &node) {
+void CodeGenerator::visit(const ast::IfExprAST &node) {
   // Emit expression for the condition
   node.cond->accept(*this);
   llvm::Value *condV = this->lastValue;
@@ -279,7 +281,7 @@ void CodeGenerator::visit(const IfExprAST &node) {
   lastValue = pn;
 }
 
-void CodeGenerator::visit(const LetExprAST &node) {
+void CodeGenerator::visit(const ast::LetExprAST &node) {
   std::vector<llvm::AllocaInst *> oldBindings;
 
   llvm::Function *function = this->llvmBuilder->GetInsertBlock()->getParent();
@@ -287,7 +289,7 @@ void CodeGenerator::visit(const LetExprAST &node) {
   // Register all variables and emit their initializer.
   for (unsigned i = 0, e = node.varNames.size(); i != e; ++i) {
     const std::string &varName = node.varNames[i].first;
-    ExprAST *init = node.varNames[i].second.get();
+    ast::ExprAST *init = node.varNames[i].second.get();
 
     // Emit the initializer before adding the variable to scope, this prevents
     // the initializer from referencing the variable itself, and permits stuff
@@ -333,7 +335,7 @@ void CodeGenerator::visit(const LetExprAST &node) {
   lastValue = bodyVal;
 }
 
-void CodeGenerator::visit(const FunctionCallExprAST &node) {
+void CodeGenerator::visit(const ast::FunctionCallExprAST &node) {
   llvm::Function *calleeF = getFunction(node.getCaller());
 
   if (!calleeF) {
@@ -361,7 +363,7 @@ void CodeGenerator::visit(const FunctionCallExprAST &node) {
   this->lastValue = this->llvmBuilder->CreateCall(calleeF, argsV, "calltmp");
 }
 
-void CodeGenerator::visit(const FunctionPrototypeAST &node) {
+void CodeGenerator::visit(const ast::FunctionPrototypeAST &node) {
   std::vector<llvm::Type *> doubles(
       node.getArgs().size(), llvm::Type::getDoubleTy(*this->llvmContext));
 
@@ -379,7 +381,7 @@ void CodeGenerator::visit(const FunctionPrototypeAST &node) {
   this->lastFunctionValue = F;
 }
 
-void CodeGenerator::visit(FunctionAST &node) {
+void CodeGenerator::visit(ast::FunctionAST &node) {
   auto &P = *node.prototype;
   this->functionPrototypes[node.prototype->getName()] =
       std::move(node.prototype);
@@ -448,4 +450,5 @@ llvm::Function *CodeGenerator::getFunction(std::string name) noexcept {
 
   return nullptr;
 }
+} // namespace gen
 } // namespace monty

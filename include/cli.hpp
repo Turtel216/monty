@@ -3,6 +3,7 @@
 #include <string>
 
 namespace monty {
+namespace drv {
 class Cli {
 public:
   std::string source_file;
@@ -17,4 +18,5 @@ public:
 private:
   void parse(int argc, char *argv[]);
 };
+} // namespace drv
 } // namespace monty

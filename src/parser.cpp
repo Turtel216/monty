@@ -5,7 +5,8 @@
 #include <vector>
 
 namespace monty {
-std::unique_ptr<ExprAST> Parser::parseExpression() noexcept {
+namespace syn {
+std::unique_ptr<ast::ExprAST> Parser::parseExpression() noexcept {
   auto Lhs = parseUnary();
   if (!Lhs)
     return nullptr;
@@ -13,18 +14,18 @@ std::unique_ptr<ExprAST> Parser::parseExpression() noexcept {
   return parseBinOpRhs(0, std::move(Lhs));
 }
 
-std::unique_ptr<ExprAST> Parser::parseIdentifierExpr() noexcept {
+std::unique_ptr<ast::ExprAST> Parser::parseIdentifierExpr() noexcept {
   std::string idName = identifierStr;
 
   // eat identifier
   getNextToken();
 
   if (curToken != '(')
-    return std::make_unique<VariableExprAST>(idName);
+    return std::make_unique<ast::VariableExprAST>(idName);
 
   // Function call
   getNextToken();
-  std::vector<std::unique_ptr<ExprAST>> args;
+  std::vector<std::unique_ptr<ast::ExprAST>> args;
 
   if (curToken != ')') {
     while (true) {
@@ -44,11 +45,12 @@ std::unique_ptr<ExprAST> Parser::parseIdentifierExpr() noexcept {
   }
 
   // eat the ')'
-  return std::make_unique<FunctionCallExprAST>(idName, std::move(args));
+  return std::make_unique<ast::FunctionCallExprAST>(idName, std::move(args));
 }
 
-std::unique_ptr<ExprAST>
-Parser::parseBinOpRhs(int exprPrec, std::unique_ptr<ExprAST> Lhs) noexcept {
+std::unique_ptr<ast::ExprAST>
+Parser::parseBinOpRhs(int exprPrec,
+                      std::unique_ptr<ast::ExprAST> Lhs) noexcept {
   // find precedence of bin op
   while (true) {
     int tokenPrec = getTokenPrecedence();
@@ -72,12 +74,12 @@ Parser::parseBinOpRhs(int exprPrec, std::unique_ptr<ExprAST> Lhs) noexcept {
     }
 
     // Combine Lhs and Rhs.
-    Lhs =
-        std::make_unique<BinaryExprAST>(binOp, std::move(Lhs), std::move(Rhs));
+    Lhs = std::make_unique<ast::BinaryExprAST>(binOp, std::move(Lhs),
+                                               std::move(Rhs));
   }
 }
 
-std::unique_ptr<ExprAST> Parser::parseUnary() noexcept {
+std::unique_ptr<ast::ExprAST> Parser::parseUnary() noexcept {
   // If the current token is not an operator, it must be a primary expr.
   if (!isascii(this->curToken) || this->curToken == '(' ||
       this->curToken == ',')
@@ -87,11 +89,11 @@ std::unique_ptr<ExprAST> Parser::parseUnary() noexcept {
   int opc = this->curToken;
   getNextToken();
   if (auto Operand = parseUnary())
-    return std::make_unique<UnaryExprAST>(opc, std::move(Operand));
+    return std::make_unique<ast::UnaryExprAST>(opc, std::move(Operand));
   return nullptr;
 }
 
-std::unique_ptr<ExprAST> Parser::parseIfExpr() noexcept {
+std::unique_ptr<ast::ExprAST> Parser::parseIfExpr() noexcept {
   getNextToken(); // eat the if.
 
   // condition.
@@ -116,14 +118,14 @@ std::unique_ptr<ExprAST> Parser::parseIfExpr() noexcept {
   if (!otherwise)
     return nullptr;
 
-  return std::make_unique<IfExprAST>(std::move(cond), std::move(then),
-                                     std::move(otherwise));
+  return std::make_unique<ast::IfExprAST>(std::move(cond), std::move(then),
+                                          std::move(otherwise));
 }
 
-std::unique_ptr<ExprAST> Parser::parseLetExpr() noexcept {
+std::unique_ptr<ast::ExprAST> Parser::parseLetExpr() noexcept {
   getNextToken(); // eat the let
 
-  std::vector<std::pair<std::string, std::unique_ptr<ExprAST>>> varNames;
+  std::vector<std::pair<std::string, std::unique_ptr<ast::ExprAST>>> varNames;
 
   // At least one variable name is required.
   if (this->curToken != token_identifier)
@@ -134,7 +136,7 @@ std::unique_ptr<ExprAST> Parser::parseLetExpr() noexcept {
     getNextToken(); // eat identifier.
 
     // Read the optional initializer.
-    std::unique_ptr<ExprAST> init;
+    std::unique_ptr<ast::ExprAST> init;
     if (this->curToken == '=') {
       getNextToken(); // eat the '='.
 
@@ -163,10 +165,11 @@ std::unique_ptr<ExprAST> Parser::parseLetExpr() noexcept {
   if (!body)
     return nullptr;
 
-  return std::make_unique<LetExprAST>(std::move(varNames), std::move(body));
+  return std::make_unique<ast::LetExprAST>(std::move(varNames),
+                                           std::move(body));
 }
 
-std::unique_ptr<ExprAST> Parser::parsePrimery() noexcept {
+std::unique_ptr<ast::ExprAST> Parser::parsePrimery() noexcept {
   switch (curToken) {
   case token_identifier:
     return parseIdentifierExpr();
@@ -183,13 +186,13 @@ std::unique_ptr<ExprAST> Parser::parsePrimery() noexcept {
   }
 }
 
-std::unique_ptr<ExprAST> Parser::parseNumberExpr() noexcept {
-  auto result = std::make_unique<NumberExprAST>(numVal);
+std::unique_ptr<ast::ExprAST> Parser::parseNumberExpr() noexcept {
+  auto result = std::make_unique<ast::NumberExprAST>(numVal);
   getNextToken(); // consume the number
   return result;
 }
 
-std::unique_ptr<FunctionPrototypeAST> Parser::parsePrototype() noexcept {
+std::unique_ptr<ast::FunctionPrototypeAST> Parser::parsePrototype() noexcept {
   std::string fnName;
 
   unsigned kind = 0; // 0 = identifier, 1 = unary, 2 = binary.
@@ -247,47 +250,48 @@ std::unique_ptr<FunctionPrototypeAST> Parser::parsePrototype() noexcept {
   if (kind && argNames.size() != kind)
     return logErrorP("Invalid number of operands for operator");
 
-  return std::make_unique<FunctionPrototypeAST>(fnName, std::move(argNames),
-                                                kind != 0, binaryPrecedence);
+  return std::make_unique<ast::FunctionPrototypeAST>(
+      fnName, std::move(argNames), kind != 0, binaryPrecedence);
 }
 
-std::unique_ptr<FunctionAST> Parser::parseDefinition() noexcept {
+std::unique_ptr<ast::FunctionAST> Parser::parseDefinition() noexcept {
   getNextToken(); // eat def.
   auto Proto = parsePrototype();
   if (!Proto)
     return nullptr;
 
   if (auto E = parseExpression())
-    return std::make_unique<FunctionAST>(std::move(Proto), std::move(E));
+    return std::make_unique<ast::FunctionAST>(std::move(Proto), std::move(E));
   return nullptr;
 }
 
-std::unique_ptr<ExprAST> Parser::logError(const char *Str) const noexcept {
+std::unique_ptr<ast::ExprAST> Parser::logError(const char *Str) const noexcept {
   fprintf(stderr, "Error: %s\n", Str);
   return nullptr;
 }
-std::unique_ptr<FunctionPrototypeAST>
+std::unique_ptr<ast::FunctionPrototypeAST>
 Parser::logErrorP(const char *Str) const noexcept {
   logError(Str);
   return nullptr;
 }
 
-std::unique_ptr<FunctionPrototypeAST> Parser::parseExtern() noexcept {
+std::unique_ptr<ast::FunctionPrototypeAST> Parser::parseExtern() noexcept {
   getNextToken(); // eat extern.
   return parsePrototype();
 }
 
-std::unique_ptr<FunctionAST> Parser::parseTopLevelExpr() noexcept {
+std::unique_ptr<ast::FunctionAST> Parser::parseTopLevelExpr() noexcept {
   if (auto expr = parseExpression()) {
     // Make an anonymous proto.
-    auto proto = std::make_unique<FunctionPrototypeAST>(
+    auto proto = std::make_unique<ast::FunctionPrototypeAST>(
         "__anon_expr", std::vector<std::string>());
-    return std::make_unique<FunctionAST>(std::move(proto), std::move(expr));
+    return std::make_unique<ast::FunctionAST>(std::move(proto),
+                                              std::move(expr));
   }
   return nullptr;
 }
 
-std::unique_ptr<ExprAST> Parser::parseParenExpr() noexcept {
+std::unique_ptr<ast::ExprAST> Parser::parseParenExpr() noexcept {
   getNextToken(); // eat (.
   auto V = parseExpression();
   if (!V)
@@ -377,5 +381,5 @@ int Parser::getTokenPrecedence() const noexcept {
 
   return tokenPrec;
 }
-
+} // namespace syn
 } // namespace monty

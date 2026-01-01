@@ -18,11 +18,10 @@
 #include <memory>
 #include <string>
 
-#
-
 namespace monty {
+namespace gen {
 
-class CodeGenerator : public ASTVisitor {
+class CodeGenerator : public ast::ASTVisitor {
 private:
   llvm::Value *lastValue;
   llvm::Function *lastFunctionValue;
@@ -52,7 +51,7 @@ public:
   llvm::Triple targetTriplet;
   // Symbol table
   std::map<std::string, llvm::AllocaInst *> namedValues;
-  std::map<std::string, std::unique_ptr<FunctionPrototypeAST>>
+  std::map<std::string, std::unique_ptr<ast::FunctionPrototypeAST>>
       functionPrototypes;
 
   // LLVM util for exiting on code generation error
@@ -69,14 +68,15 @@ public:
   }
 
   // ASTVisitor interface
-  void visit(const NumberExprAST &node) override;
-  void visit(const VariableExprAST &node) override;
-  void visit(const BinaryExprAST &node) override;
-  void visit(const UnaryExprAST &node) override;
-  void visit(const IfExprAST &node) override;
-  void visit(const LetExprAST &node) override;
-  void visit(const FunctionCallExprAST &node) override;
-  void visit(const FunctionPrototypeAST &node) override;
-  void visit(FunctionAST &node) override;
+  void visit(const ast::NumberExprAST &node) override;
+  void visit(const ast::VariableExprAST &node) override;
+  void visit(const ast::BinaryExprAST &node) override;
+  void visit(const ast::UnaryExprAST &node) override;
+  void visit(const ast::IfExprAST &node) override;
+  void visit(const ast::LetExprAST &node) override;
+  void visit(const ast::FunctionCallExprAST &node) override;
+  void visit(const ast::FunctionPrototypeAST &node) override;
+  void visit(ast::FunctionAST &node) override;
 };
+} // namespace gen
 } // namespace monty

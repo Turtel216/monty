@@ -6,6 +6,7 @@
 #include <vector>
 
 namespace monty {
+namespace ast {
 
 // Forward declartion
 class NumberExprAST;
@@ -172,5 +173,5 @@ public:
 
   void accept(ASTVisitor &visitor) noexcept;
 };
-
+} // namespace ast
 } // namespace monty

@@ -6,6 +6,7 @@
 #include <memory>
 
 namespace monty {
+namespace syn {
 
 enum Token {
   token_eof = -1,
@@ -37,9 +38,9 @@ public:
   int getNextToken() noexcept;
   int getCurrentToken() const noexcept { return this->curToken; }
 
-  std::unique_ptr<FunctionAST> parseTopLevelExpr() noexcept;
-  std::unique_ptr<FunctionAST> parseDefinition() noexcept;
-  std::unique_ptr<FunctionPrototypeAST> parseExtern() noexcept;
+  std::unique_ptr<ast::FunctionAST> parseTopLevelExpr() noexcept;
+  std::unique_ptr<ast::FunctionAST> parseDefinition() noexcept;
+  std::unique_ptr<ast::FunctionPrototypeAST> parseExtern() noexcept;
 
 private:
   bool panicing;
@@ -50,25 +51,26 @@ private:
   std::istream &inputStream;
 
   // TODO add better compiler error handling
-  std::unique_ptr<ExprAST> logError(const char *Str) const noexcept;
-  std::unique_ptr<FunctionPrototypeAST>
+  std::unique_ptr<ast::ExprAST> logError(const char *Str) const noexcept;
+  std::unique_ptr<ast::FunctionPrototypeAST>
 
   logErrorP(const char *Str) const noexcept;
   int getToken() noexcept;
   int getNextChar() noexcept { return this->inputStream.get(); }
 
-  std::unique_ptr<ExprAST> parseExpression() noexcept;
-  std::unique_ptr<ExprAST> parseIdentifierExpr() noexcept;
-  std::unique_ptr<ExprAST> parsePrimery() noexcept;
-  std::unique_ptr<ExprAST> parseUnary() noexcept;
-  std::unique_ptr<ExprAST> parseBinOpRhs(int exprPrec,
-                                         std::unique_ptr<ExprAST> Lhs) noexcept;
-  std::unique_ptr<ExprAST> parseIfExpr() noexcept;
-  std::unique_ptr<ExprAST> parseLetExpr() noexcept;
-  std::unique_ptr<ExprAST> parseNumberExpr() noexcept;
-  std::unique_ptr<ExprAST> parseParenExpr() noexcept;
-  std::unique_ptr<FunctionPrototypeAST> parsePrototype() noexcept;
+  std::unique_ptr<ast::ExprAST> parseExpression() noexcept;
+  std::unique_ptr<ast::ExprAST> parseIdentifierExpr() noexcept;
+  std::unique_ptr<ast::ExprAST> parsePrimery() noexcept;
+  std::unique_ptr<ast::ExprAST> parseUnary() noexcept;
+  std::unique_ptr<ast::ExprAST>
+  parseBinOpRhs(int exprPrec, std::unique_ptr<ast::ExprAST> Lhs) noexcept;
+  std::unique_ptr<ast::ExprAST> parseIfExpr() noexcept;
+  std::unique_ptr<ast::ExprAST> parseLetExpr() noexcept;
+  std::unique_ptr<ast::ExprAST> parseNumberExpr() noexcept;
+  std::unique_ptr<ast::ExprAST> parseParenExpr() noexcept;
+  std::unique_ptr<ast::FunctionPrototypeAST> parsePrototype() noexcept;
 
   int getTokenPrecedence() const noexcept;
 };
+} // namespace syn
 } // namespace monty

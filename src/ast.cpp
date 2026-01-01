@@ -6,6 +6,7 @@
 #include <llvm/IR/Verifier.h>
 
 namespace monty {
+namespace ast {
 void NumberExprAST::accept(ASTVisitor &visitor) const noexcept {
   visitor.visit(*this);
 }
@@ -39,4 +40,5 @@ void FunctionPrototypeAST::accept(ASTVisitor &visitor) const noexcept {
 }
 
 void FunctionAST::accept(ASTVisitor &visitor) noexcept { visitor.visit(*this); }
+} // namespace ast
 } // namespace monty

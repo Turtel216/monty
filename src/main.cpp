@@ -18,7 +18,7 @@
 int main(int argc, char *argv[]) {
 
   try { // monty::Cli might throw exception
-    monty::Cli cli(argc, argv);
+    monty::drv::Cli cli(argc, argv);
 
     if (cli.help_requested) {
       cli.print_usage(argv[0]);
@@ -40,21 +40,21 @@ int main(int argc, char *argv[]) {
     binopPrecedence['-'] = 20;
     binopPrecedence['*'] = 40;
 
-    monty::CodeGenerator generator{binopPrecedence};
+    monty::gen::CodeGenerator generator{binopPrecedence};
 
     // Old Jit compiler code
     // llvm::InitializeNativeTarget();
     // llvm::InitializeNativeTargetAsmPrinter();
     // llvm::InitializeNativeTargetAsmParser();
 
-    monty::Parser parser{binopPrecedence, sourceFile};
+    monty::syn::Parser parser{binopPrecedence, sourceFile};
     parser.getNextToken();
 
-    monty::process(generator, parser);
+    monty::drv::process(generator, parser);
 
-    auto filename = cli.output_file;
+    auto fileName = "output.o";
     std::error_code EC;
-    llvm::raw_fd_ostream dest(filename, EC, llvm::sys::fs::OF_None);
+    llvm::raw_fd_ostream dest(fileName, EC, llvm::sys::fs::OF_None);
     if (EC) {
       llvm::errs() << "Could not open file: " << EC.message();
       return 1;
@@ -77,13 +77,13 @@ int main(int argc, char *argv[]) {
     fb.close();
 
     if (!cli.compile_only) {
-      monty::linkToRuntime(cli.output_file);
-      monty::cleanUp(filename);
+      monty::drv::linkToRuntime(cli.output_file);
+      monty::drv::cleanUp(fileName);
 
       return 0;
     }
 
-    llvm::outs() << "Wrote to " << filename << "\n";
+    llvm::outs() << "Wrote to " << fileName << "\n";
 
     return 0;
   } catch (const std::exception &e) {

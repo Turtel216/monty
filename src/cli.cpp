@@ -3,6 +3,7 @@
 #include <vector>
 
 namespace monty {
+namespace drv {
 void Cli::print_usage(const char *prog_name) const {
   std::cout << "Usage: " << prog_name << " [source_file] [options]\n"
             << "Options:\n"
@@ -44,4 +45,5 @@ void Cli::parse(int argc, char *argv[]) {
     throw std::runtime_error("Error: No input source file specified.");
   }
 }
+} // namespace drv
 } // namespace monty
