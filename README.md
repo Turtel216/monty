@@ -117,7 +117,7 @@ cmake --build build --config Release
 Monty can emit object files that link cleanly with C/C++ via the C ABI:
 ```bash
 # Emit object file
-./build/montyc src/module.my -c -o module.o
+./build/montyc src/module.my -o module.o
 
 # Link with a C++ application
 c++ main.cpp module.o -o app $(llvm-config --ldflags --libs)

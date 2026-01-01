@@ -34,9 +34,9 @@ set(SRC_FILES
 )
 
 # Main executable
-add_executable(monty ${SRC_FILES})
+add_executable(montyc ${SRC_FILES})
 
-target_link_libraries(monty LLVM)
+target_link_libraries(montyc LLVM)
 
 # Tests
 #if (BUILD_TESTING)

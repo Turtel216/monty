@@ -52,9 +52,9 @@ int main(int argc, char *argv[]) {
 
     monty::process(generator, parser);
 
-    auto Filename = "output.o";
+    auto filename = cli.output_file;
     std::error_code EC;
-    llvm::raw_fd_ostream dest(Filename, EC, llvm::sys::fs::OF_None);
+    llvm::raw_fd_ostream dest(filename, EC, llvm::sys::fs::OF_None);
     if (EC) {
       llvm::errs() << "Could not open file: " << EC.message();
       return 1;
@@ -74,14 +74,20 @@ int main(int argc, char *argv[]) {
 
     // generator.llvmModule->print(llvm::errs(), nullptr);
 
-    llvm::outs() << "Wrote " << Filename << "\n";
     fb.close();
 
-    monty::linkToRuntime(cli.output_file);
-    monty::cleanUp(Filename);
+    if (!cli.compile_only) {
+      monty::linkToRuntime(cli.output_file);
+      monty::cleanUp(filename);
+
+      return 0;
+    }
+
+    llvm::outs() << "Wrote to " << filename << "\n";
+
     return 0;
   } catch (const std::exception &e) {
-    std::cerr << e.what() << "\n";
+    llvm::errs() << e.what() << "\n";
     return 1;
   }
 }
