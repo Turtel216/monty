@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../include/ast.hpp"
+#include "../include/diagnostics.hpp"
 #include <istream>
 #include <map>
 #include <memory>
@@ -30,9 +31,19 @@ enum Token {
 
 class Parser {
 public:
-  Parser(std::map<char, int> &_binopPrecedence,
+  // Source location tracking
+  int currentLine = 1;
+  int currentCol = 0;
+  int lastChar = ' ';
+
+  // Diagnostics class for tracking compiler erros
+  Diagnostics &diag;
+
+  // The location of the token currently stored in `curToken`
+  SourceLoc curLoc = {1, 0};
+  Parser(Diagnostics &_diag, std::map<char, int> &_binopPrecedence,
          std::istream &_inputStream) noexcept
-      : panicing(false), binopPrecedence(_binopPrecedence),
+      : diag(_diag), panicing(false), binopPrecedence(_binopPrecedence),
         inputStream(_inputStream) {}
 
   int getNextToken() noexcept;
@@ -56,7 +67,7 @@ private:
 
   logErrorP(const char *Str) const noexcept;
   int getToken() noexcept;
-  int getNextChar() noexcept { return this->inputStream.get(); }
+  int getNextChar() noexcept;
 
   std::unique_ptr<ast::ExprAST> parseExpression() noexcept;
   std::unique_ptr<ast::ExprAST> parseIdentifierExpr() noexcept;

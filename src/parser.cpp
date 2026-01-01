@@ -265,8 +265,8 @@ std::unique_ptr<ast::FunctionAST> Parser::parseDefinition() noexcept {
   return nullptr;
 }
 
-std::unique_ptr<ast::ExprAST> Parser::logError(const char *Str) const noexcept {
-  fprintf(stderr, "Error: %s\n", Str);
+std::unique_ptr<ast::ExprAST> Parser::logError(const char *str) const noexcept {
+  diag.report(str, curLoc);
   return nullptr;
 }
 std::unique_ptr<ast::FunctionPrototypeAST>
@@ -312,6 +312,9 @@ int Parser::getToken() noexcept {
   // Skip any whitespace.
   while (isspace(lastChar))
     lastChar = getNextChar();
+
+  // Store location of new token
+  curLoc = {currentLine, currentCol};
 
   if (isalpha(lastChar)) { // identifier: [a-zA-Z][a-zA-Z0-9]*
     identifierStr = lastChar;
@@ -381,5 +384,18 @@ int Parser::getTokenPrecedence() const noexcept {
 
   return tokenPrec;
 }
+
+int Parser::getNextChar() noexcept {
+  int c = this->inputStream.get();
+  if (c == '\n') {
+    currentLine++;
+    currentCol = 0;
+  } else {
+    currentCol++;
+  }
+
+  return c;
+}
+
 } // namespace syn
 } // namespace monty

@@ -47,10 +47,17 @@ int main(int argc, char *argv[]) {
     // llvm::InitializeNativeTargetAsmPrinter();
     // llvm::InitializeNativeTargetAsmParser();
 
-    monty::syn::Parser parser{binopPrecedence, sourceFile};
+    // Error tracker
+    monty::syn::Diagnostics diag;
+    monty::syn::Parser parser{diag, binopPrecedence, sourceFile};
     parser.getNextToken();
 
     monty::drv::process(generator, parser);
+
+    if (diag.hasErrors()) {
+      diag.printErors();
+      return -1;
+    }
 
     auto fileName = "output.o";
     std::error_code EC;

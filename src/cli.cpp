@@ -4,6 +4,9 @@
 
 namespace monty {
 namespace drv {
+
+Cli::Cli(int argc, char *argv[]) { parse(argc, argv); }
+
 void Cli::print_usage(const char *prog_name) const {
   std::cout << "Usage: " << prog_name << " [source_file] [options]\n"
             << "Options:\n"

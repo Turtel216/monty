@@ -5,28 +5,33 @@
 #include <vector>
 
 namespace monty {
+namespace syn {
 
-enum class DiagCode {
-  ExpectedSemicolon,
-  // TODO
-};
-
-class SourceLocation {
-public:
-  std::string file;
+struct SourceLoc {
   int line;
   int col;
-
-  SourceLocation(std::string _file, int _line, int _col) noexcept
-      : file(_file), line(_line), col(_col) {}
 };
 
-class DiagnosticEngine {
-private:
-  std::vector<CompilerError> errors;
-
+class Diagnostics {
 public:
-  void report(SourceLocation loc, DiagCode code, std::string details) noexcept;
-  [[nodiscard]] bool hasError() const noexcept;
+  struct Error {
+    std::string message;
+    SourceLoc loc;
+  };
+
+  void report(const std::string &msg, SourceLoc loc) {
+    errors.push_back({msg, loc});
+    // fprintf(stderr, "Error at %d:%d: %s\n", loc.line, loc.col, msg.c_str());
+    // TODO move to print erros
+  }
+
+  const std::vector<Error> &getErrors() const { return errors; }
+  bool hasErrors() const { return !errors.empty(); }
+  void printErors() const;
+
+private:
+  std::vector<Error> errors;
 };
+
+} // namespace syn
 } // namespace monty
