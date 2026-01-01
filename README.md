@@ -1,6 +1,6 @@
 # Monty
 
-Monty is an ahead-of-time (AOT) compiler and experimental functional programming language built in modern C++ on top of LLVM. It focuses on expression-oriented semantics, user-defined operators, and interop with C/C++ via the C ABI.
+Monty is an ahead-of-time (AOT) compiler an un-pure toy functional language built in modern C++ on top of LLVM. It focuses on expression-oriented semantics, user-defined operators, and interop with C/C++ via the C ABI.
 
 ## Table of Contents
 1. [Highlights](#highlights)
@@ -96,7 +96,7 @@ fn foo(x) let y = 2, z = 2 in x + y + z;
 ```
 
 ## Building & Running
-> Prerequisites: A recent LLVM toolchain and a C++17 (or later) compiler.
+> Prerequisites: A recent LLVM toolchain and a C++23 (or later) compiler.
 
 Typical workflow (adjust paths/targets as needed):
 ```bash
@@ -107,7 +107,7 @@ cmake -S . -B build -DLLVM_DIR=/path/to/llvm
 cmake --build build --config Release
 
 # Compile a Monty source file to a native executable
-./build/monty examples/hello.my -o hello
+./build/monty hello.my -o hello
 
 # Run
 ./build/hello
@@ -117,16 +117,18 @@ cmake --build build --config Release
 Monty can emit object files that link cleanly with C/C++ via the C ABI:
 ```bash
 # Emit object file
-./build/montyc src/module.my -o module.o
+./build/montyc src/module.my -c
 
 # Link with a C++ application
-c++ main.cpp module.o -o app $(llvm-config --ldflags --libs)
+clang++ main.cpp output.o -o app
 ```
+
 Inside Monty, declare external symbols with `using`:
+
 ```monty
 using printd(x);
 
-fn main()
+fn entry()
   printd(42);
 ```
 
